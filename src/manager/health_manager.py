@@ -42,15 +42,41 @@ class HealthManager:
     def list(self, user_id: int, page: int, size: int, tags: Optional[List[str]],
              date_from: Optional[datetime], date_to: Optional[datetime]) -> Tuple[int, List[HealthRecord]]:
         q = self._base_query(user_id)
-        if tags:
-            for t in tags:
-                q = q.filter(HealthRecord.tags.contains(t))
+        
+        # Apply date filters first at the database level
         if date_from:
             q = q.filter(HealthRecord.timestamp >= date_from)
         if date_to:
             q = q.filter(HealthRecord.timestamp <= date_to)
-        total = q.count()
-        items = q.order_by(HealthRecord.timestamp.desc()).offset((page - 1) * size).limit(size).all()
+            
+        # For tag filtering, we need to handle JSON properly
+        if tags:
+            # Get all records matching date criteria first
+            all_records = q.order_by(HealthRecord.timestamp.desc()).all()
+            
+            # Filter by tags in Python to handle JSON properly
+            filtered_records = []
+            for record in all_records:
+                if record.tags:
+                    try:
+                        record_tags = json.loads(record.tags)
+                        # Check if any of the search tags are in the record's tags
+                        if any(tag in record_tags for tag in tags):
+                            filtered_records.append(record)
+                    except (json.JSONDecodeError, TypeError):
+                        # Skip records with invalid JSON
+                        continue
+            
+            total = len(filtered_records)
+            # Apply pagination to the filtered results
+            start_idx = (page - 1) * size
+            end_idx = start_idx + size
+            items = filtered_records[start_idx:end_idx]
+        else:
+            # No tag filtering, use database pagination
+            total = q.count()
+            items = q.order_by(HealthRecord.timestamp.desc()).offset((page - 1) * size).limit(size).all()
+            
         return total, items
 
     @db_breaker
