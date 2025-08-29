@@ -7,10 +7,12 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import and_
 from ..manager.health_manager import HealthManager
+from ..manager.family_manager import FamilyMemberManager
 from ..utils import get_pagination_params, make_pagination, error
 
 health_bp = Blueprint("health", __name__)
 manager = HealthManager()
+family_manager = FamilyMemberManager()
 
 
 @health_bp.route("", methods=["POST"])
@@ -18,6 +20,18 @@ manager = HealthManager()
 def create_record():
     user_id = get_jwt_identity()
     data = request.get_json(force=True) or {}
+    
+    # Ensure user has a Self member
+    self_member = family_manager.ensure_self_member(user_id)
+    
+    # Get family member ID (default to Self if not specified)
+    family_member_id = data.get("family_member_id", self_member.id)
+    
+    # Verify the family member belongs to the user
+    member = family_manager.get(user_id, family_member_id)
+    if not member:
+        return jsonify(error("404", "Family member not found")), 404
+    
     try:
         systolic = int(data.get("systolic"))
         diastolic = int(data.get("diastolic"))
@@ -39,10 +53,11 @@ def create_record():
         return jsonify(error("400", "tags must be a list")), 400
     note = data.get("note")
 
-    rec = manager.create(user_id=user_id, systolic=systolic, diastolic=diastolic, heart_rate=heart_rate,
+    rec = manager.create(user_id=user_id, family_member_id=family_member_id, systolic=systolic, diastolic=diastolic, heart_rate=heart_rate,
                          timestamp=ts, tags=tags, note=note)
     return jsonify({
         "id": rec.id,
+        "family_member_id": rec.family_member_id,
         "systolic": rec.systolic,
         "diastolic": rec.diastolic,
         "heart_rate": rec.heart_rate,
@@ -58,6 +73,11 @@ def create_record():
 @jwt_required()
 def list_records():
     user_id = get_jwt_identity()
+    
+    # Ensure user has a Self member and migrate existing records
+    self_member = family_manager.ensure_self_member(user_id)
+    manager.migrate_records_to_self_member(user_id, self_member.id)
+    
     page, size = get_pagination_params()
     # Build filters
     tags_q = request.args.get("tags")
@@ -80,9 +100,23 @@ def list_records():
         except ValueError:
             return jsonify(error("400", "Invalid date_to")), 400
 
-    total, items = manager.list(user_id=user_id, page=page, size=size, tags=tag_list, date_from=df, date_to=dt)
+    # Get family member filter
+    family_member_id = request.args.get("family_member_id")
+    if family_member_id:
+        try:
+            family_member_id = int(family_member_id)
+            # Verify the family member belongs to the user
+            member = family_manager.get(user_id, family_member_id)
+            if not member:
+                return jsonify(error("404", "Family member not found")), 404
+        except (TypeError, ValueError):
+            return jsonify(error("400", "Invalid family_member_id")), 400
+
+    total, items = manager.list(user_id=user_id, page=page, size=size, tags=tag_list, 
+                                date_from=df, date_to=dt, family_member_id=family_member_id)
     data = [{
         "id": r.id,
+        "family_member_id": r.family_member_id,
         "systolic": r.systolic,
         "diastolic": r.diastolic,
         "heart_rate": r.heart_rate,
@@ -102,6 +136,7 @@ def get_record(rec_id: int):
         return jsonify(error("404", "Record not found")), 404
     return jsonify({
         "id": rec.id,
+        "family_member_id": rec.family_member_id,
         "systolic": rec.systolic,
         "diastolic": rec.diastolic,
         "heart_rate": rec.heart_rate,
@@ -149,6 +184,7 @@ def update_record(rec_id: int):
     manager.update(rec)
     return jsonify({
         "id": rec.id,
+        "family_member_id": rec.family_member_id,
         "systolic": rec.systolic,
         "diastolic": rec.diastolic,
         "heart_rate": rec.heart_rate,

@@ -6,17 +6,18 @@ from datetime import datetime
 from typing import List, Optional, Tuple
 from sqlalchemy import and_
 from ..extensions import db
-from ..models import HealthRecord
+from ..models import HealthRecord, FamilyMember
 from ..resilience.policy import db_breaker, with_retry
 
 
 class HealthManager:
     @db_breaker
     @with_retry()
-    def create(self, user_id: int, systolic: int, diastolic: int, heart_rate: Optional[int],
+    def create(self, user_id: int, family_member_id: int, systolic: int, diastolic: int, heart_rate: Optional[int],
                timestamp: datetime, tags: List[str], note: Optional[str]) -> HealthRecord:
         rec = HealthRecord()
         rec.user_id = user_id
+        rec.family_member_id = family_member_id
         rec.systolic = systolic
         rec.diastolic = diastolic
         rec.heart_rate = heart_rate
@@ -40,8 +41,14 @@ class HealthManager:
 
     @db_breaker
     def list(self, user_id: int, page: int, size: int, tags: Optional[List[str]],
-             date_from: Optional[datetime], date_to: Optional[datetime]) -> Tuple[int, List[HealthRecord]]:
+             date_from: Optional[datetime], date_to: Optional[datetime], 
+             family_member_id: Optional[int] = None) -> Tuple[int, List[HealthRecord]]:
         q = self._base_query(user_id)
+        
+        # Filter by family member if specified
+        if family_member_id:
+            q = q.filter(HealthRecord.family_member_id == family_member_id)
+        
         if tags:
             for t in tags:
                 q = q.filter(HealthRecord.tags.contains(t))
@@ -67,3 +74,13 @@ class HealthManager:
     def delete(self, rec: HealthRecord):
         db.session.delete(rec)
         db.session.commit()
+
+    @db_breaker
+    @with_retry()
+    def migrate_records_to_self_member(self, user_id: int, self_member_id: int):
+        """Migrate existing health records to associate with the Self family member"""
+        orphaned_records = HealthRecord.query.filter_by(user_id=user_id, family_member_id=None).all()
+        for record in orphaned_records:
+            record.family_member_id = self_member_id
+        db.session.commit()
+        return len(orphaned_records)

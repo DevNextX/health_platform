@@ -14,6 +14,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import HealthRecords from './pages/HealthRecords';
+import FamilyMembers from './pages/FamilyMembers';
 import Profile from './pages/Profile';
 import { isAuthenticated } from './utils/auth';
 
@@ -54,6 +55,7 @@ function App() {
               <Route index element={<Navigate to="/dashboard" />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="health-records" element={<HealthRecords />} />
+              <Route path="family-members" element={<FamilyMembers />} />
               <Route path="profile" element={<Profile />} />
             </Route>
             

@@ -21,12 +21,31 @@ class User(db.Model):
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
 
     records = db.relationship("HealthRecord", backref="user", lazy=True)
+    family_members = db.relationship("FamilyMember", backref="user", lazy=True)
+
+
+class FamilyMember(db.Model):
+    __tablename__ = "family_members"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    gender = db.Column(db.String(16))
+    age = db.Column(db.Integer)
+    height = db.Column(db.Float)  # in cm
+    weight = db.Column(db.Float)  # in kg
+    is_self = db.Column(db.Boolean, default=False, nullable=False)
+    is_deleted = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
+
+    records = db.relationship("HealthRecord", backref="family_member", lazy=True)
 
 
 class HealthRecord(db.Model):
     __tablename__ = "health_records"
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    family_member_id = db.Column(db.Integer, db.ForeignKey("family_members.id"), nullable=True)  # Nullable for migration
     systolic = db.Column(db.Integer, nullable=False)
     diastolic = db.Column(db.Integer, nullable=False)
     heart_rate = db.Column(db.Integer, nullable=True)
