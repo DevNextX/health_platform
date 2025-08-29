@@ -7,6 +7,7 @@ from .extensions import db, jwt, limiter, cors
 from .service.auth_service import auth_bp
 from .service.user_service import user_bp
 from .service.health_service import health_bp
+from .service.family_service import family_bp
 from .errors import register_error_handlers
 
 
@@ -27,6 +28,7 @@ def create_app(config_class: type = Config) -> Flask:
     app.register_blueprint(auth_bp, url_prefix="/api/v1/auth")
     app.register_blueprint(user_bp, url_prefix="/api/v1/user")
     app.register_blueprint(health_bp, url_prefix="/api/v1/health")
+    app.register_blueprint(family_bp, url_prefix="/api/v1/family")
 
     # Errors
     register_error_handlers(app)
