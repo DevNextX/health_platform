@@ -27,7 +27,8 @@ class UserManager:
         return user
 
     def get_user(self, user_id: int) -> Optional[User]:
-        return User.query.get(user_id)
+        # Use modern Session.get API to avoid LegacyAPIWarning
+        return db.session.get(User, user_id)
 
     def get_user_by_email(self, email: str) -> Optional[User]:
         return User.query.filter_by(email=email).first()

@@ -1,192 +1,222 @@
-# API Design for Health Platform
+# API Design for Health Platform (Aligned with Implementation)
+
+Base URL prefix: `/api/v1`
 
 ## Authentication
-- **Method**: JWT (JSON Web Token)
-- **Header**: `Authorization: Bearer <token>`
-- **Endpoints**:
-  - `/api/auth/login` (POST): User login, returns a JWT token.
-  - `/api/auth/register` (POST): User registration.
-  - `/api/auth/refresh` (POST): Refresh tokens (requires refresh token).
-  - `/api/auth/logout` (POST): Logout current session (requires refresh token).
-  - `/api/auth/logout-all` (POST): Invalidate all sessions (requires access token).
+- Method: JWT (JSON Web Token)
+- Headers: `Authorization: Bearer <token>`（访问受保护接口必需）
+- Endpoints:
+  - `POST /api/v1/auth/register`：注册，返回基础用户信息。
+  - `POST /api/v1/auth/login`：登录，返回 access_token 与 refresh_token。
+  - `POST /api/v1/auth/refresh`：用 refresh_token 换取新 access_token 与 refresh_token。（需在 Authorization 中携带 refresh_token）
+  - `POST /api/v1/auth/logout`：登出当前会话（刷新令牌），使当前 refresh_token 失效。（需 refresh_token）
+  - `POST /api/v1/auth/logout-all`：登出所有会话（访问令牌），提升 token_version 使所有 token 失效。（需 access_token）
+
+Responses（示例）
+```json
+// login / refresh 成功 200
+{
+  "access_token": "<jwt>",
+  "expires_in": 1800,
+  "refresh_token": "<jwt>",
+  "refresh_expires_in": 604800,
+  "token_type": "Bearer"
+}
+```
+
+错误统一格式：
+```json
+{
+  "code": "string",
+  "message": "string",
+  "details": {}
+}
+```
 
 ---
 
 ## User Module
-### 1. Register User
-- **Endpoint**: `/api/user`
-- **Method**: POST
-- **Request DTO**:
-  ```json
-  {
-    "username": "string",
-    "email": "string",
-    "password": "string",
-    "age": "integer",
-    "gender": "string",
-    "weight": "float"
-  }
-  ```
-- **Response DTO**:
-  ```json
-  {
-    "id": "string",
-    "username": "string",
-    "email": "string",
-    "created_at": "datetime"
-  }
-  ```
+> 说明：为兼容历史文档，`POST /api/v1/user` 也支持注册，内部复用 auth.register。
 
-### 2. Login User
-- **Endpoint**: `/api/auth/login`
-- **Method**: POST
-- **Request DTO**:
-  ```json
-  {
-    "email": "string",
-    "password": "string"
-  }
-  ```
-- **Response DTO**:
-  ```json
-  {
-    "token": "string",
-    "expires_in": "integer"
-  }
-  ```
+### 1) Register User
+- Endpoint: `POST /api/v1/user`（或 `POST /api/v1/auth/register`）
+- Request
+```json
+{
+  "username": "string",
+  "email": "string",
+  "password": "string",
+  "age": 25,
+  "gender": "male|female|M|F",
+  "weight": 70
+}
+```
+- Response 201
+```json
+{
+  "id": 1,
+  "username": "string",
+  "email": "string",
+  "created_at": "2025-08-28T10:00:00Z"
+}
+```
 
-### 3. Get User Info
-- **Endpoint**: `/api/user/{id}`
-- **Method**: GET
-- **Response DTO**:
-  ```json
-  {
-    "id": "string",
-    "username": "string",
-    "email": "string",
-    "age": "integer",
-    "gender": "string",
-    "weight": "float"
-  }
-  ```
+### 2) Get User Info
+- Endpoint: `GET /api/v1/user/{id}`（需 access_token）
+- Response 200
+```json
+{
+  "id": 1,
+  "username": "string",
+  "email": "string",
+  "age": 25,
+  "gender": "male|female|M|F",
+  "weight": 70
+}
+```
 
-### 4. Update User Info
-- **Endpoint**: `/api/user/{id}`
-- **Method**: PUT
-- **Request DTO**:
-  ```json
-  {
-    "username": "string",
-    "age": "integer",
-    "gender": "string",
-    "weight": "float"
-  }
-  ```
-- **Response DTO**:
-  ```json
-  {
-    "id": "string",
-    "username": "string",
-    "email": "string",
-    "updated_at": "datetime"
-  }
-  ```
+### 3) Update User Info
+- Endpoint: `PUT /api/v1/user/{id}`（需 access_token）
+- Request
+```json
+{
+  "username": "string",
+  "age": 26,
+  "gender": "male|female|M|F",
+  "weight": 72
+}
+```
+- Response 200
+```json
+{
+  "id": 1,
+  "username": "string",
+  "email": "string",
+  "age": 26,
+  "gender": "male|female|M|F",
+  "weight": 72,
+  "updated_at": "2025-08-28T11:00:00Z"
+}
+```
 
 ---
 
 ## Health Data Module
-### 1. Add Health Record
-- **Endpoint**: `/api/health`
-- **Method**: POST
-- **Request DTO**:
-  ```json
-  {
-    "systolic": "integer",
-    "diastolic": "integer",
-    "heart_rate": "integer",
-    "timestamp": "datetime",
-    "tags": ["string"],
-    "note": "string"
-  }
-  ```
-- **Response DTO**:
-  ```json
-  {
-    "id": "string",
-    "user_id": "string",
-    "systolic": "integer",
-    "diastolic": "integer",
-    "heart_rate": "integer",
-    "timestamp": "datetime",
-    "tags": ["string"],
-    "note": "string"
-  }
-  ```
+> 所有端点需 access_token；时间格式采用 ISO8601（例如 `2025-08-28T10:00:00Z`）。
 
-### 2. Get Health Records
-- **Endpoint**: `/api/health`
-- **Method**: GET
-- **Query Parameters**:
-  - `user_id`: Filter by user.
-  - `page`: Page number (default: 1).
-  - `size`: Page size (default: 20).
-  - `tags`: Filter by tags.
-  - `date_from`: Start date.
-  - `date_to`: End date.
-- **Response DTO**:
-  ```json
-  {
-    "data": [
-      {
-        "id": "string",
-        "systolic": "integer",
-        "diastolic": "integer",
-        "heart_rate": "integer",
-        "timestamp": "datetime",
-        "tags": ["string"],
-        "note": "string"
-      }
-    ],
-    "pagination": {
-      "page": "integer",
-      "size": "integer",
-      "total": "integer"
+### 1) Create Health Record
+- Endpoint: `POST /api/v1/health`
+- Request
+```json
+{
+  "systolic": 120,
+  "diastolic": 80,
+  "heart_rate": 72,
+  "timestamp": "2025-08-28T10:00:00Z",
+  "tags": ["晨起", "运动后"],
+  "note": "string"
+}
+```
+- Constraints
+  - systolic / diastolic: 50-250（超出 422）
+  - tags: 数组（否则 400）
+- Response 201
+```json
+{
+  "id": 1,
+  "systolic": 120,
+  "diastolic": 80,
+  "heart_rate": 72,
+  "timestamp": "2025-08-28T10:00:00Z",
+  "tags": ["晨起", "运动后"],
+  "note": "string",
+  "created_at": "2025-08-28T10:00:05Z"
+}
+```
+
+### 2) List Health Records
+- Endpoint: `GET /api/v1/health`
+- Query Params
+  - `page`：页码，默认 1
+  - `per_page`：每页数量，默认 10
+  - `tags`：按标签逗号分隔过滤，如 `tags=晨起,运动后`
+  - `date_from`：开始时间（ISO8601）
+  - `date_to`：结束时间（ISO8601）
+- Response 200
+```json
+{
+  "records": [
+    {
+      "id": 1,
+      "systolic": 120,
+      "diastolic": 80,
+      "heart_rate": 72,
+      "timestamp": "2025-08-28T10:00:00Z",
+      "tags": ["晨起"],
+      "note": "string"
     }
+  ],
+  "pagination": {
+    "page": 1,
+    "per_page": 10,
+    "total": 1
   }
-  ```
+}
+```
 
-### 3. Update Health Record
-- **Endpoint**: `/api/health/{id}`
-- **Method**: PUT
-- **Request DTO**:
-  ```json
-  {
-    "systolic": "integer",
-    "diastolic": "integer",
-    "heart_rate": "integer",
-    "tags": ["string"],
-    "note": "string"
-  }
-  ```
-- **Response DTO**:
-  ```json
-  {
-    "id": "string",
-    "systolic": "integer",
-    "diastolic": "integer",
-    "heart_rate": "integer",
-    "tags": ["string"],
-    "note": "string",
-    "updated_at": "datetime"
-  }
-  ```
+### 3) Get Health Record
+- Endpoint: `GET /api/v1/health/{id}`
+- Response 200
+```json
+{
+  "id": 1,
+  "systolic": 120,
+  "diastolic": 80,
+  "heart_rate": 72,
+  "timestamp": "2025-08-28T10:00:00Z",
+  "tags": ["晨起"],
+  "note": "string"
+}
+```
 
-### 4. Delete Health Record
-- **Endpoint**: `/api/health/{id}`
-- **Method**: DELETE
-- **Response DTO**:
-  ```json
-  {
-    "message": "Record deleted successfully."
-  }
-  ```
+### 4) Update Health Record
+- Endpoint: `PUT /api/v1/health/{id}`
+- Request（任意字段可选）
+```json
+{
+  "systolic": 130,
+  "diastolic": 85,
+  "heart_rate": 75,
+  "tags": ["运动后"],
+  "note": "updated"
+}
+```
+- Response 200
+```json
+{
+  "id": 1,
+  "systolic": 130,
+  "diastolic": 85,
+  "heart_rate": 75,
+  "tags": ["运动后"],
+  "note": "updated",
+  "updated_at": "2025-08-28T10:30:00Z"
+}
+```
+
+### 5) Delete Health Record
+- Endpoint: `DELETE /api/v1/health/{id}`
+- Response 200
+```json
+{ "message": "Record deleted successfully." }
+```
+
+---
+
+## Notes & Conventions
+- 所有受保护接口需在 `Authorization` 头部携带 Bearer Token。
+- 后端会对 401 自动使用刷新逻辑的前端拦截器处理（若配置了 refresh_token）。
+- 时间戳统一 ISO8601，前端入参已对筛选做 startOf/endOf 日界处理。
+- 错误响应统一格式见上文，常见 code："400"、"401"、"403"、"404"、"422"。
+
+Generated by Zhuang
