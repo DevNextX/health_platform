@@ -6,11 +6,72 @@ from datetime import timedelta
 
 
 class Config:
+    # Core Flask settings
+    SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-change-me")
+    
+    # Database configuration
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///health_platform.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_recycle': 300,
+        'pool_pre_ping': True
+    }
+    
+    # JWT configuration
     JWT_SECRET_KEY = os.getenv("JWT_SECRET", "dev-secret-change-me")
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=int(os.getenv("JWT_ACCESS_MINUTES", "30")))
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=int(os.getenv("JWT_REFRESH_DAYS", "7")))
+    
+    # CORS configuration
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+    
+    # Rate limiting configuration
     RATELIMIT_DEFAULT = os.getenv("RATELIMIT_DEFAULT", "60 per minute")
     RATELIMIT_AUTH = os.getenv("RATELIMIT_AUTH", "5 per minute")
+    
+    # Security headers
+    SECURITY_HEADERS = {
+        'X-Frame-Options': 'SAMEORIGIN',
+        'X-XSS-Protection': '1; mode=block',
+        'X-Content-Type-Options': 'nosniff',
+        'Referrer-Policy': 'no-referrer-when-downgrade'
+    }
+
+
+class DevelopmentConfig(Config):
+    DEBUG = True
+    ENV = "development"
+
+
+class ProductionConfig(Config):
+    DEBUG = False
+    ENV = "production"
+    
+    # Enhanced security for production
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=int(os.getenv("JWT_ACCESS_MINUTES", "15")))
+    RATELIMIT_DEFAULT = os.getenv("RATELIMIT_DEFAULT", "100 per minute")
+    RATELIMIT_AUTH = os.getenv("RATELIMIT_AUTH", "10 per minute")
+    
+    # Production database settings
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 10,
+        'pool_recycle': 300,
+        'pool_pre_ping': True,
+        'max_overflow': 20
+    }
+
+
+class TestingConfig(Config):
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    JWT_SECRET_KEY = "test-secret"
+    WTF_CSRF_ENABLED = False
+
+
+# Configuration mapping
+config = {
+    'development': DevelopmentConfig,
+    'production': ProductionConfig,
+    'testing': TestingConfig,
+    'default': DevelopmentConfig
+}
