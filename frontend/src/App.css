@@ -1,0 +1,120 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  padding: 20px;
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Custom styles for health platform */
+.health-platform-layout {
+  min-height: 100vh;
+}
+
+.chart-container {
+  margin: 20px 0;
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.health-record-form {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.health-record-card {
+  margin-bottom: 16px;
+}
+
+.login-form {
+  max-width: 400px;
+  margin: 100px auto;
+  padding: 40px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.register-form {
+  max-width: 500px;
+  margin: 50px auto;
+  padding: 40px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.statistics-card {
+  text-align: center;
+  padding: 20px;
+}
+
+.statistics-number {
+  font-size: 24px;
+  font-weight: bold;
+  color: #1890ff;
+}
+
+.tag-selector {
+  margin: 16px 0;
+}
+
+.blood-pressure-input {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.blood-pressure-input .ant-input {
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .login-form, .register-form {
+    margin: 20px;
+    padding: 20px;
+  }
+  
+  .health-record-form {
+    padding: 16px;
+    margin: 0 16px;
+  }
+  
+  .chart-container {
+    margin: 16px;
+    padding: 16px;
+  }
+}
