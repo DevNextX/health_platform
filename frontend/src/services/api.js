@@ -93,4 +93,13 @@ export const healthAPI = {
   deleteRecord: (recordId) => api.delete(`/api/v1/health/${recordId}`),
 };
 
+// Family Member APIs
+export const familyAPI = {
+  getMembers: () => api.get('/api/v1/family'),
+  createMember: (memberData) => api.post('/api/v1/family', memberData),
+  getMember: (memberId) => api.get(`/api/v1/family/${memberId}`),
+  updateMember: (memberId, memberData) => api.put(`/api/v1/family/${memberId}`, memberData),
+  deleteMember: (memberId) => api.delete(`/api/v1/family/${memberId}`),
+};
+
 export default api;

@@ -17,6 +17,7 @@ import {
   UserOutlined,
   LogoutOutlined,
   MenuOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import { authAPI } from '../services/api';
 import { clearTokens } from '../utils/auth';
@@ -41,6 +42,12 @@ const Layout = () => {
       icon: <HeartOutlined />,
       label: '健康记录',
       onClick: () => navigate('/health-records'),
+    },
+    {
+      key: '/family-members',
+      icon: <TeamOutlined />,
+      label: '家庭成员',
+      onClick: () => navigate('/family-members'),
     },
     {
       key: '/profile',
