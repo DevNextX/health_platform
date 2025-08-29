@@ -15,6 +15,8 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import HealthRecords from './pages/HealthRecords';
 import Profile from './pages/Profile';
+import Members from './pages/Members';
+import { MemberProvider } from './context/MemberContext';
 import { isAuthenticated } from './utils/auth';
 
 // Protected Route Component
@@ -31,6 +33,7 @@ function App() {
   return (
     <ConfigProvider locale={zhCN}>
       <Router>
+        <MemberProvider>
         <div className="App">
           <Routes>
             {/* Public Routes */}
@@ -54,6 +57,7 @@ function App() {
               <Route index element={<Navigate to="/dashboard" />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="health-records" element={<HealthRecords />} />
+              <Route path="members" element={<Members />} />
               <Route path="profile" element={<Profile />} />
             </Route>
             
@@ -61,6 +65,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>
+        </MemberProvider>
       </Router>
     </ConfigProvider>
   );

@@ -11,7 +11,7 @@
 - 健康记录CRUD操作
 - 数据分页与筛选
 - API限流保护
-- 自动化测试 (29/29通过)
+- 自动化测试 (31/31通过)
 
 ### ✅ 前端界面 (React)
 - 登录/注册（邮箱唯一、表单校验）
@@ -19,6 +19,7 @@
 - 仪表盘统计（总数/本周/平均收缩压/平均舒张压/平均心率）
 - 趋势折线图（最近一周/一月/全部），图表下载 PNG
 - 响应式设计
+- 简化版家庭成员：成员档案管理（不能登录），按成员录入与筛选（subject_member_id）
 
 ## 🚀 快速开始
 
@@ -92,7 +93,7 @@ python -m pytest tests/ -v
 # 方式B：不激活 .venv，直接用虚拟环境解释器（最稳妥，避免“ No module named pytest ”）
 Set-Location -Path 'c:\Zhuang\Source\health_platform'; .\.venv\Scripts\python.exe -m pytest tests/ -q
 
-# 结果: 29/29 测试通过 ✅
+# 结果: 31/31 测试通过 ✅
 
 # 运行端到端(E2E)测试
 # 1) 先启动后端 http://localhost:5000

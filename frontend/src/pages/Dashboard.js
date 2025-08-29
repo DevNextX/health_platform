@@ -7,6 +7,7 @@ import { Card, Row, Col, Statistic, Typography, message, Spin } from 'antd';
 import { HeartOutlined, FileTextOutlined, CalendarOutlined } from '@ant-design/icons';
 import { healthAPI } from '../services/api';
 import HealthChart from '../components/HealthChart';
+import { useMember } from '../context/MemberContext';
 
 const { Title } = Typography;
 
@@ -20,16 +21,18 @@ const Dashboard = () => {
     avgHeartRate: 0,
   });
   const [recentRecords, setRecentRecords] = useState([]);
+  const { selectedMemberId } = useMember();
 
   const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       
       // Fetch recent records for statistics
-      const response = await healthAPI.getRecords({ 
-        page: 1, 
-        per_page: 50 // Get enough records for statistics
-      });
+      const params = { page: 1, per_page: 50 };
+  if (selectedMemberId !== undefined && selectedMemberId !== null) {
+        params.subject_member_id = selectedMemberId;
+      }
+      const response = await healthAPI.getRecords(params);
       
       const records = response.data.records || [];
       setRecentRecords(records.slice(0, 10)); // Keep only recent 10 for display
@@ -44,7 +47,7 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedMemberId]);
 
   useEffect(() => {
     fetchDashboardData();

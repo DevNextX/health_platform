@@ -17,9 +17,13 @@ import {
   UserOutlined,
   LogoutOutlined,
   MenuOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from '@ant-design/icons';
 import { authAPI } from '../services/api';
 import { clearTokens } from '../utils/auth';
+import MemberSelector from './MemberSelector';
+import { useMember } from '../context/MemberContext';
 
 const { Header, Content, Sider } = AntLayout;
 
@@ -28,6 +32,7 @@ const Layout = () => {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuVisible, setMobileMenuVisible] = useState(false);
+  const { selectedMemberId, setSelectedMemberId } = useMember();
 
   const menuItems = [
     {
@@ -43,6 +48,12 @@ const Layout = () => {
       onClick: () => navigate('/health-records'),
     },
     {
+      key: '/members',
+      icon: <UserOutlined />,
+      label: '成员管理',
+      onClick: () => navigate('/members'),
+    },
+    {
       key: '/profile',
       icon: <UserOutlined />,
       label: '个人信息',
@@ -52,7 +63,17 @@ const Layout = () => {
 
   const handleLogout = async () => {
     try {
-      await authAPI.logout();
+      // Backend /logout requires refresh token; authAPI.logout already posts without header override,
+      // our axios interceptor will attach access token by default. We explicitly call refresh endpoint first
+      // to obtain a fresh pair and then call logout with the refresh token header to satisfy backend requirement.
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (!refreshToken) {
+        throw new Error('Missing refresh token');
+      }
+      // Call logout with refresh token as Bearer
+      await authAPI.logout({
+        headers: { Authorization: `Bearer ${refreshToken}` },
+      });
       clearTokens();
       message.success('已成功退出登录');
       navigate('/login');
@@ -115,7 +136,7 @@ const Layout = () => {
         placement="left"
         onClose={() => setMobileMenuVisible(false)}
         open={mobileMenuVisible}
-        bodyStyle={{ padding: 0 }}
+        styles={{ body: { padding: 0 } }}
         className="mobile-drawer"
       >
         <Menu
@@ -137,18 +158,34 @@ const Layout = () => {
             borderBottom: '1px solid #f0f0f0',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Mobile: open drawer */}
             <Button
               type="text"
               icon={<MenuOutlined />}
               onClick={() => setMobileMenuVisible(true)}
               className="mobile-menu-button"
               style={{ display: 'none' }}
+              title="打开菜单"
+            />
+            {/* Desktop: toggle sider collapse */}
+            <Button
+              type="text"
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={() => setCollapsed(!collapsed)}
+              className="desktop-menu-toggle"
+              title={collapsed ? '展开菜单' : '收起菜单'}
             />
             <h4 style={{ margin: 0, marginLeft: 16 }}>
               {menuItems.find(item => item.key === location.pathname)?.label || '健康平台'}
             </h4>
           </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <MemberSelector
+              value={selectedMemberId}
+              onChange={(v) => setSelectedMemberId(v)}
+              style={{ minWidth: 180 }}
+            />
           <Button
             type="text"
             icon={<LogoutOutlined />}
@@ -157,13 +194,14 @@ const Layout = () => {
           >
             退出登录
           </Button>
+          </div>
         </Header>
         <Content style={{ padding: '24px', minHeight: 'calc(100vh - 64px)' }}>
           <Outlet />
         </Content>
       </AntLayout>
 
-      <style jsx>{`
+  <style>{`
         @media (max-width: 992px) {
           .desktop-sider {
             display: none !important;
@@ -174,13 +212,19 @@ const Layout = () => {
           .mobile-menu-button {
             display: inline-flex !important;
           }
+          .desktop-menu-toggle {
+            display: none !important;
+          }
         }
         @media (min-width: 993px) {
           .mobile-drawer {
             display: none;
           }
+          .desktop-menu-toggle {
+            display: inline-flex;
+          }
         }
-      `}</style>
+  `}</style>
     </AntLayout>
   );
 };

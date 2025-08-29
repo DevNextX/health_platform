@@ -74,7 +74,8 @@ export const authAPI = {
   register: (userData) => api.post('/api/v1/auth/register', userData),
   login: (credentials) => api.post('/api/v1/auth/login', credentials),
   refresh: () => api.post('/api/v1/auth/refresh'),
-  logout: () => api.post('/api/v1/auth/logout'),
+  // logout requires refresh token; allow passing custom config with headers
+  logout: (config) => api.post('/api/v1/auth/logout', {}, config),
   logoutAll: () => api.post('/api/v1/auth/logout-all'),
 };
 
@@ -91,6 +92,14 @@ export const healthAPI = {
   getRecord: (recordId) => api.get(`/api/v1/health/${recordId}`),
   updateRecord: (recordId, recordData) => api.put(`/api/v1/health/${recordId}`, recordData),
   deleteRecord: (recordId) => api.delete(`/api/v1/health/${recordId}`),
+};
+
+// Members APIs (simplified family management)
+export const memberAPI = {
+  list: () => api.get('/api/v1/members'),
+  create: (member) => api.post('/api/v1/members', member),
+  update: (memberId, member) => api.put(`/api/v1/members/${memberId}`, member),
+  remove: (memberId) => api.delete(`/api/v1/members/${memberId}`),
 };
 
 export default api;
