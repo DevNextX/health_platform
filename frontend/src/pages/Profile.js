@@ -50,6 +50,7 @@ const Profile = () => {
         email: user.email,
         age: user.age,
         gender: user.gender,
+  height: user.height,
         weight: user.weight,
       });
     } catch (error) {
@@ -143,6 +144,10 @@ const Profile = () => {
                 <Text>{getGenderText(userInfo?.gender)}</Text>
               </div>
               <div>
+                <Text strong>身高：</Text>
+                <Text>{userInfo?.height ? `${userInfo.height} cm` : '未设置'}</Text>
+              </div>
+              <div>
                 <Text strong>体重：</Text>
                 <Text>{userInfo?.weight ? `${userInfo.weight} kg` : '未设置'}</Text>
               </div>
@@ -231,6 +236,26 @@ const Profile = () => {
                       <Option value="F">女</Option>
                       <Option value="O">其他</Option>
                     </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col xs={24} sm={12}>
+                  <Form.Item
+                    name="height"
+                    label="身高 (cm)"
+                    rules={[
+                      { type: 'number', min: 1, max: 300, message: '请输入有效身高' }
+                    ]}
+                  >
+                    <InputNumber
+                      placeholder="身高"
+                      style={{ width: '100%' }}
+                      min={1}
+                      max={300}
+                      step={0.1}
+                    />
                   </Form.Item>
                 </Col>
               </Row>
