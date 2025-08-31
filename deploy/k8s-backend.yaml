@@ -22,6 +22,9 @@ data:
   CORS_ORIGINS: "http://localhost:8080,http://127.0.0.1:8080"
   JWT_ACCESS_MINUTES: "30"
   JWT_REFRESH_DAYS: "7"
+  # DB auto-create controls (see README)
+  DB_CREATE_ON_MISSING: "1"
+  DB_AUTO_CREATE: "0"
 ---
 apiVersion: v1
 kind: Secret

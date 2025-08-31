@@ -10,6 +10,9 @@ services:
     environment:
       # External DB configuration; override as needed
       - DATABASE_URL=${DATABASE_URL:-mysql+pymysql://user:password@mysql:3306/healthdb?charset=utf8mb4}
+  # Auto table creation controls for external DBs
+  - DB_AUTO_CREATE=${DB_AUTO_CREATE:-0}
+  - DB_CREATE_ON_MISSING=${DB_CREATE_ON_MISSING:-1}
       - JWT_SECRET=${JWT_SECRET:-dev-change-me}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
       - JWT_ACCESS_MINUTES=${JWT_ACCESS_MINUTES:-30}

@@ -10,6 +10,8 @@ Backend reads configuration from environment variables (see `src/config.py`):
 - DATABASE_URL: SQLAlchemy URL (e.g., postgresql+psycopg2://user:pass@host:5432/db)
 - JWT_SECRET, JWT_ACCESS_MINUTES, JWT_REFRESH_DAYS
 - CORS_ORIGINS: comma-separated list
+ - DB_CREATE_ON_MISSING: "1" to auto-create when required tables are missing (default in k8s manifests)
+ - DB_AUTO_CREATE: "1" to always create tables on startup (off by default)
 
 Frontend Nginx proxies `/api/` to backend using API_URL.
 
