@@ -8,12 +8,14 @@ import { Form, Input, Button, Card, Typography, message, Space } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { authAPI } from '../services/api';
 import { setTokens } from '../utils/auth';
+import { useTranslation } from 'react-i18next';
 
 const { Title, Text } = Typography;
 
 const Login = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
 
   const onFinish = async (values) => {
     setLoading(true);
@@ -22,11 +24,11 @@ const Login = () => {
       const { access_token, refresh_token } = response.data;
       
       setTokens(access_token, refresh_token);
-      message.success('登录成功！');
+  message.success(t('messages.login.success'));
       navigate('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
-      const errorMessage = error.response?.data?.message || '登录失败，请检查用户名和密码';
+  const errorMessage = error.response?.data?.message || t('messages.login.fail');
       message.error(errorMessage);
     } finally {
       setLoading(false);
@@ -45,9 +47,9 @@ const Login = () => {
       <Card className="login-form">
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <Title level={2} style={{ color: '#1890ff', marginBottom: 8 }}>
-            健康记录平台
+            {t('login.title')}
           </Title>
-          <Text type="secondary">请登录您的账户</Text>
+          <Text type="secondary">{t('login.subtitle')}</Text>
         </div>
 
         <Form
@@ -59,23 +61,23 @@ const Login = () => {
           <Form.Item
             name="email"
             rules={[
-              { required: true, message: '请输入邮箱地址!' },
-              { type: 'email', message: '请输入有效的邮箱地址!' }
+              { required: true, message: t('register.email') + '!' },
+              { type: 'email', message: t('register.email') + '!' }
             ]}
           >
             <Input
               prefix={<UserOutlined />}
-              placeholder="邮箱地址"
+              placeholder={t('login.email')}
             />
           </Form.Item>
 
           <Form.Item
             name="password"
-            rules={[{ required: true, message: '请输入密码!' }]}
+            rules={[{ required: true, message: t('login.password') + '!' }]}
           >
             <Input.Password
               prefix={<LockOutlined />}
-              placeholder="密码"
+              placeholder={t('login.password')}
             />
           </Form.Item>
 
@@ -86,15 +88,15 @@ const Login = () => {
               loading={loading}
               block
             >
-              登录
+              {t('login.submit')}
             </Button>
           </Form.Item>
         </Form>
 
         <div style={{ textAlign: 'center' }}>
           <Space>
-            <Text type="secondary">还没有账户？</Text>
-            <Link to="/register">立即注册</Link>
+            <Text type="secondary">{t('login.toRegister')}</Text>
+            <Link to="/register">{t('login.registerNow')}</Link>
           </Space>
         </div>
       </Card>

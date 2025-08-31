@@ -8,10 +8,12 @@ import { HeartOutlined, FileTextOutlined, CalendarOutlined } from '@ant-design/i
 import { healthAPI } from '../services/api';
 import HealthChart from '../components/HealthChart';
 import { useMember } from '../context/MemberContext';
+import { useTranslation } from 'react-i18next';
 
 const { Title } = Typography;
 
 const Dashboard = () => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [statistics, setStatistics] = useState({
     totalRecords: 0,
@@ -43,11 +45,11 @@ const Dashboard = () => {
       
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
-      message.error('获取数据失败');
+  message.error(t('health.messages.loadFail'));
     } finally {
       setLoading(false);
     }
-  }, [selectedMemberId]);
+  }, [selectedMemberId, t]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -105,7 +107,7 @@ const Dashboard = () => {
   return (
     <div>
       <div className="page-header">
-        <Title level={2}>健康仪表板</Title>
+  <Title level={2}>{t('dashboard.title')}</Title>
       </div>
 
       {/* Statistics Cards */}
@@ -113,7 +115,7 @@ const Dashboard = () => {
         <Col xs={24} sm={12} md={8} lg={6}>
           <Card>
             <Statistic
-              title="总记录数"
+              title={t('dashboard.totalRecords')}
               value={statistics.totalRecords}
               prefix={<FileTextOutlined />}
               valueStyle={{ color: '#3f8600' }}
@@ -123,7 +125,7 @@ const Dashboard = () => {
         <Col xs={24} sm={12} md={8} lg={6}>
           <Card>
             <Statistic
-              title="本周记录"
+              title={t('dashboard.thisWeek')}
               value={statistics.thisWeekRecords}
               prefix={<CalendarOutlined />}
               valueStyle={{ color: '#1890ff' }}
@@ -133,7 +135,7 @@ const Dashboard = () => {
         <Col xs={24} sm={12} md={8} lg={6}>
           <Card>
             <Statistic
-              title="平均收缩压"
+              title={t('dashboard.avgSystolic')}
               value={statistics.avgSystolic}
               suffix="mmHg"
               prefix={<HeartOutlined />}
@@ -144,7 +146,7 @@ const Dashboard = () => {
         <Col xs={24} sm={12} md={8} lg={6}>
           <Card>
             <Statistic
-              title="平均舒张压"
+              title={t('dashboard.avgDiastolic')}
               value={statistics.avgDiastolic}
               suffix="mmHg"
               prefix={<HeartOutlined />}
@@ -155,7 +157,7 @@ const Dashboard = () => {
         <Col xs={24} sm={12} md={8} lg={6}>
           <Card>
             <Statistic
-              title="平均心率"
+              title={t('dashboard.avgHeartRate')}
               value={statistics.avgHeartRate}
               suffix="bpm"
               prefix={<HeartOutlined />}
@@ -166,7 +168,7 @@ const Dashboard = () => {
       </Row>
 
       {/* Health Chart */}
-      <Card title="健康趋势图" className="chart-container">
+  <Card title={t('dashboard.chartTitle')} className="chart-container">
         <HealthChart records={recentRecords} />
       </Card>
     </div>

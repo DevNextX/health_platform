@@ -7,6 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Form, Input, Button, Card, Typography, message, Space, Select, InputNumber } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
 import { authAPI } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -14,19 +15,20 @@ const { Option } = Select;
 const Register = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
 
   const onFinish = async (values) => {
     setLoading(true);
     try {
       await authAPI.register(values);
-      message.success('注册成功！请登录您的账户');
+      message.success(t('messages.register.success'));
       navigate('/login');
     } catch (error) {
       console.error('Register error:', error);
-      let errorMessage = '注册失败，请稍后重试';
+      let errorMessage = t('messages.register.fail');
       
       if (error.response?.status === 409) {
-        errorMessage = '该邮箱已被注册，请使用其他邮箱';
+        errorMessage = t('messages.register.emailExists');
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       }
@@ -49,9 +51,9 @@ const Register = () => {
       <Card className="register-form">
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <Title level={2} style={{ color: '#1890ff', marginBottom: 8 }}>
-            健康记录平台
+            {t('register.title')}
           </Title>
-          <Text type="secondary">创建您的健康账户</Text>
+          <Text type="secondary">{t('register.subtitle')}</Text>
         </div>
 
         <Form
@@ -62,76 +64,76 @@ const Register = () => {
         >
           <Form.Item
             name="username"
-            label="用户名"
+            label={t('register.username')}
             rules={[
-              { required: true, message: '请输入用户名!' },
-              { min: 2, message: '用户名至少2个字符!' }
+              { required: true, message: t('register.username') + '!' },
+              { min: 2, message: t('register.username') + '!' }
             ]}
           >
             <Input
               prefix={<UserOutlined />}
-              placeholder="请输入用户名"
+              placeholder={t('register.username')}
             />
           </Form.Item>
 
           <Form.Item
             name="email"
-            label="邮箱地址"
+            label={t('register.email')}
             rules={[
-              { required: true, message: '请输入邮箱地址!' },
-              { type: 'email', message: '请输入有效的邮箱地址!' }
+              { required: true, message: t('register.email') + '!' },
+              { type: 'email', message: t('register.email') + '!' }
             ]}
           >
             <Input
               prefix={<MailOutlined />}
-              placeholder="请输入邮箱地址"
+              placeholder={t('register.email')}
             />
           </Form.Item>
 
           <Form.Item
             name="password"
-            label="密码"
+            label={t('register.password')}
             rules={[
-              { required: true, message: '请输入密码!' },
-              { min: 6, message: '密码至少6个字符!' }
+              { required: true, message: t('register.password') + '!' },
+              { min: 6, message: t('register.password') + '!' }
             ]}
           >
             <Input.Password
               prefix={<LockOutlined />}
-              placeholder="请输入密码"
+              placeholder={t('register.password')}
             />
           </Form.Item>
 
           <Form.Item
             name="confirmPassword"
-            label="确认密码"
+            label={t('register.confirmPassword')}
             dependencies={['password']}
             rules={[
-              { required: true, message: '请确认密码!' },
+              { required: true, message: t('register.confirmPassword') + '!' },
               ({ getFieldValue }) => ({
                 validator(_, value) {
                   if (!value || getFieldValue('password') === value) {
                     return Promise.resolve();
                   }
-                  return Promise.reject(new Error('两次输入的密码不一致!'));
+                  return Promise.reject(new Error('Passwords do not match!'));
                 },
               }),
             ]}
           >
             <Input.Password
               prefix={<LockOutlined />}
-              placeholder="请确认密码"
+              placeholder={t('register.confirmPassword')}
             />
           </Form.Item>
 
           <Space style={{ width: '100%' }} size="large">
             <Form.Item
               name="age"
-              label="年龄"
+              label={t('register.age')}
               style={{ flex: 1 }}
             >
               <InputNumber
-                placeholder="年龄"
+                placeholder={t('register.age')}
                 min={1}
                 max={120}
                 style={{ width: '100%' }}
@@ -140,13 +142,13 @@ const Register = () => {
 
             <Form.Item
               name="gender"
-              label="性别"
+              label={t('register.gender')}
               style={{ flex: 1 }}
             >
-              <Select placeholder="请选择性别">
-                <Option value="M">男</Option>
-                <Option value="F">女</Option>
-                <Option value="O">其他</Option>
+              <Select placeholder={t('register.gender')}>
+                <Option value="M">{t('profile.gender.M')}</Option>
+                <Option value="F">{t('profile.gender.F')}</Option>
+                <Option value="O">{t('profile.gender.O')}</Option>
               </Select>
             </Form.Item>
           </Space>
@@ -154,10 +156,10 @@ const Register = () => {
           {/* Generated by Zhuang: Optional height for profile; will be synced to Self member height */}
           <Form.Item
             name="height"
-            label="身高 (cm)"
+            label={t('register.height')}
           >
             <InputNumber
-              placeholder="身高"
+              placeholder={t('register.height')}
               min={1}
               max={300}
               step={0.1}
@@ -167,10 +169,10 @@ const Register = () => {
 
           <Form.Item
             name="weight"
-            label="体重 (kg)"
+            label={t('register.weight')}
           >
             <InputNumber
-              placeholder="体重"
+              placeholder={t('register.weight')}
               min={1}
               max={500}
               step={0.1}
@@ -185,15 +187,15 @@ const Register = () => {
               loading={loading}
               block
             >
-              注册
+              {t('register.submit')}
             </Button>
           </Form.Item>
         </Form>
 
         <div style={{ textAlign: 'center' }}>
           <Space>
-            <Text type="secondary">已有账户？</Text>
-            <Link to="/login">立即登录</Link>
+            <Text type="secondary">{t('register.toLogin')}</Text>
+            <Link to="/login">{t('register.loginNow')}</Link>
           </Space>
         </div>
       </Card>
