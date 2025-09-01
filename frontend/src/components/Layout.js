@@ -20,6 +20,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from '@ant-design/icons';
+import { TeamOutlined, IdcardOutlined, SettingOutlined } from '@ant-design/icons';
 import { authAPI, userAPI } from '../services/api';
 import { clearTokens, getUserIdFromToken } from '../utils/auth';
 import MemberSelector from './MemberSelector';
@@ -67,19 +68,19 @@ const Layout = () => {
     },
     {
       key: '/members',
-      icon: <UserOutlined />,
+  icon: <TeamOutlined />,
       label: t('nav.members'),
       onClick: () => navigate('/members'),
     },
     {
       key: '/profile',
-      icon: <UserOutlined />,
+  icon: <IdcardOutlined />,
       label: t('nav.profile'),
       onClick: () => navigate('/profile'),
     },
     {
       key: '/settings',
-      icon: <UserOutlined />,
+  icon: <SettingOutlined />,
       label: t('nav.settings'),
       onClick: () => navigate('/settings'),
     },

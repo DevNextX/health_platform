@@ -151,4 +151,22 @@
   "settings.language.en": "English",
   "settings.save": "保存",
   "settings.saved": "设置已保存"
+  ,
+  "tags.morning": "晨起",
+  "tags.before_bed": "睡前",
+  "tags.pre_exercise": "运动前",
+  "tags.post_exercise": "运动后",
+  "tags.before_meal": "餐前",
+  "tags.after_meal": "餐后",
+  "tags.before_med": "服药前",
+  "tags.after_med": "服药后",
+  "tags.at_work": "工作时",
+  "tags.at_rest": "休息时",
+  "tags.under_stress": "紧张时",
+  "tags.relaxed": "放松时",
+  "tags.headache": "头痛",
+  "tags.dizziness": "头晕",
+  "tags.chest_tightness": "胸闷",
+  "tags.palpitations": "心悸",
+  "tags.fatigue": "疲劳"
 }

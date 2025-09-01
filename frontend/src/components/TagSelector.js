@@ -5,15 +5,17 @@
 import React from 'react';
 import { Select, Tag, Tooltip } from 'antd';
 import { useTranslation } from 'react-i18next';
+import { COMMON_TAG_DEFS, tagValueToLabel } from '../utils/tagI18n';
 
 const { Option } = Select;
 
 const TagSelector = ({ value = [], onChange, placeholder, options = [], ...rest }) => {
   const { t } = useTranslation();
 
-  // Predefined common tags
-  // Keep common tags in Chinese as data values for consistency; i18n typically doesn't translate tags (user data)
-  const commonTags = ['晨起','睡前','运动前','运动后','餐前','餐后','服药前','服药后','工作时','休息时','紧张时','放松时','头痛','头晕','胸闷','心悸','疲劳'];
+  // Map for quick value->label resolution (recomputed on language change via t)
+  const valueToLabel = new Map(
+    COMMON_TAG_DEFS.map(({ id, value }) => [value, t(`tags.${id}`)])
+  );
 
   const handleChange = (newValue) => onChange?.(newValue);
 
@@ -31,16 +33,19 @@ const TagSelector = ({ value = [], onChange, placeholder, options = [], ...rest 
         {...rest}
       >
         {Array.from(new Set([
-          ...commonTags,
+          ...COMMON_TAG_DEFS.map(x => x.value), // suggested values (Chinese)
           ...(options || []),
           ...(value || []),
-        ])).map(tag => (
-          <Option key={tag} value={tag} label={tag} title={tag}>
-            <Tooltip title={tag} placement="right">
-              <Tag color="blue" style={{ maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis' }}>{tag}</Tag>
-            </Tooltip>
-          </Option>
-        ))}
+        ])).map(tagValue => {
+          const label = valueToLabel.get(tagValue) || tagValueToLabel(tagValue, t);
+          return (
+            <Option key={tagValue} value={tagValue} label={label} title={label}>
+              <Tooltip title={label} placement="right">
+                <Tag color="blue" style={{ maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</Tag>
+              </Tooltip>
+            </Option>
+          );
+        })}
       </Select>
     </div>
   );

@@ -30,6 +30,7 @@ import dayjs from 'dayjs';
 import { healthAPI } from '../services/api';
 import { useMember } from '../context/MemberContext';
 import TagSelector from '../components/TagSelector';
+import { tagValueToLabel } from '../utils/tagI18n';
 import { useTranslation } from 'react-i18next';
 
 const { TextArea } = Input;
@@ -240,7 +241,7 @@ const HealthRecords = () => {
       render: (tags) => (
         <Space wrap>
           {(tags || []).map(tag => (
-            <Tag key={tag} color="blue">{tag}</Tag>
+            <Tag key={tag} color="blue">{tagValueToLabel(tag, t)}</Tag>
           ))}
         </Space>
       ),

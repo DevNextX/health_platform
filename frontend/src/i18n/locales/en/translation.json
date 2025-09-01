@@ -151,4 +151,22 @@
   "settings.language.en": "English",
   "settings.save": "Save",
   "settings.saved": "Settings saved"
+  ,
+  "tags.morning": "Morning",
+  "tags.before_bed": "Before Bed",
+  "tags.pre_exercise": "Before Exercise",
+  "tags.post_exercise": "After Exercise",
+  "tags.before_meal": "Before Meal",
+  "tags.after_meal": "After Meal",
+  "tags.before_med": "Before Medication",
+  "tags.after_med": "After Medication",
+  "tags.at_work": "At Work",
+  "tags.at_rest": "At Rest",
+  "tags.under_stress": "Under Stress",
+  "tags.relaxed": "Relaxed",
+  "tags.headache": "Headache",
+  "tags.dizziness": "Dizziness",
+  "tags.chest_tightness": "Chest Tightness",
+  "tags.palpitations": "Palpitations",
+  "tags.fatigue": "Fatigue"
 }
