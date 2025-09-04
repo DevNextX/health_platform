@@ -14,7 +14,7 @@ items:
       namespace: health-platform
     data:
       # LISTEN_PORT used by the nginx entrypoint in the image
-      LISTEN_PORT: "80"
+      LISTEN_PORT: "8080"
       # Default API_URL uses in-cluster DNS to reach the backend service; override at deploy time if needed
       API_URL: "http://backend.health-platform.svc.cluster.local:5000"
 
@@ -37,17 +37,12 @@ items:
         spec:
           imagePullSecrets:
             - name: regcred
-          securityContext:
-            runAsUser: 101
-            runAsGroup: 101
-            fsGroup: 101
-            runAsNonRoot: true
           containers:
             - name: frontend
               image: ghcr.io/devnextx/health-platform-frontend:sha-8aef88b
               imagePullPolicy: IfNotPresent
               ports:
-                - containerPort: 80
+                - containerPort: 8080
               envFrom:
                 - configMapRef:
                     name: frontend-config

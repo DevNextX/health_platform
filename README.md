@@ -6,7 +6,23 @@
 
 ## 🚀 已完成功能
 
-### ✅ 后端API (Flask)
+```cmd
+:: 运行API测试（推荐使用虚拟环境的 Python 执行器）
+:: 方式A：先激活 .venv（简洁）
+python -m venv .venv
+.\.venv\Scripts\activate.bat
+python -m pytest tests/ -v
+
+:: 方式B：不激活 .venv，直接用虚拟环境解释器（最稳妥，避免" No module named pytest "）
+cd c:\Zhuang\Source\health_platform
+.\.venv\Scripts\python.exe -m pytest tests/ -q
+
+:: 结果: 31/31 测试通过 ✅
+
+:: Kubernetes 部署验证测试
+kubectl get pods -n health-platform
+kubectl logs deployment/frontend -n health-platform
+kubectl logs deployment/backend -n health-platform(Flask)
 - 用户注册/登录/登出 (JWT认证)
 - 健康记录CRUD操作
 - 数据分页与筛选
@@ -177,6 +193,27 @@ health_platform/
 - CSV数据导出  
 - 微信小程序
 - Azure容器化部署
+
+## 🛠️ 容器化部署经验总结
+
+### Kubernetes 权限问题处理
+在容器化部署过程中遇到了 Frontend Pod `CrashLoopBackOff` 问题，根本原因是 Nginx 权限配置与 K8s 安全上下文冲突。
+
+**问题现象**：
+```bash
+nginx: [emerg] mkdir() "/var/cache/nginx/client_temp" failed (13: Permission denied)
+```
+
+**解决方案**：
+1. **临时修复**：调整 K8s 安全上下文允许 root 用户
+2. **长期方案**：重新构建支持非 root 用户的 Nginx 镜像
+
+**关键经验**：
+- 优先查看 Pod 日志：`kubectl logs <pod> --previous`
+- 权限问题应在镜像构建阶段解决，而非运行时配置
+- 容器安全策略必须与应用需求匹配
+
+详细记录见：[GitHub Issue #24](https://github.com/DevNextX/health_platform/issues/24)
 
 ---
 
