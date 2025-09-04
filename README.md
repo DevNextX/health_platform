@@ -25,32 +25,34 @@
 
 ### 1. 启动后端服务
 
-```powershell
-# 创建虚拟环境
+```cmd
+:: 创建虚拟环境
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\activate.bat
 
-# 安装依赖
+:: 安装依赖
 pip install -r requirements.txt
 
-# 启动服务
-$env:PYTHONPATH="."
-$env:FLASK_APP="src.app"
+:: 启动服务
+set PYTHONPATH=.
+set FLASK_APP=src.app
 python -m flask run --host=0.0.0.0 --port=5000
 ```
 
 故障排查：如果遇到 ModuleNotFoundError（例如 No module named 'flask_jwt_extended'），请确认已在当前虚拟环境中安装依赖，并使用该环境启动 Flask：
 
-```powershell
+```cmd
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\activate.bat
 pip install -r requirements.txt
-$env:PYTHONPATH='.'; $env:FLASK_APP='src.app'; python -m flask run --host=0.0.0.0 --port=5000
+set PYTHONPATH=.
+set FLASK_APP=src.app
+python -m flask run --host=0.0.0.0 --port=5000
 ```
 
 ### 2. 启动前端（开发模式）
 
-```powershell
+```cmd
 cd frontend
 npm install
 npm start
@@ -60,7 +62,7 @@ npm start
 - `npm start` 会启动开发服务器（**热更新**：代码修改后自动重新编译并刷新浏览器）。
 - `npm run build` 只会生成生产构建到 build/，不会启动服务器；如需本地预览生产构建：
 
-```powershell
+```cmd
 cd frontend
 npm run build
 npm install -g serve
@@ -71,10 +73,10 @@ serve -s build -l 3000
 
 本地用 `serve` 预览生产构建时不会自动代理 `/api` 到后端（与开发模式不同），需要在构建前指定后端地址，否则前端会把 `/api` 请求发到 3000 端口并得到 HTML（index.html）：
 
-```powershell
-# 在 frontend 目录中，构建时注入后端地址
+```cmd
+:: 在 frontend 目录中，构建时注入后端地址
 cd frontend
-$env:REACT_APP_API_URL='http://127.0.0.1:5000'
+set REACT_APP_API_URL=http://127.0.0.1:5000
 npm run build
 serve -s build -l 3000
 ```
@@ -97,28 +99,29 @@ serve -s build -l 3000
 
 ## 🧪 测试验证
 
-```powershell
-# 运行API测试（推荐使用虚拟环境的 Python 执行器）
-# 方式A：先激活 .venv（简洁）
+```cmd
+:: 运行API测试（推荐使用虚拟环境的 Python 执行器）
+:: 方式A：先激活 .venv（简洁）
 python -m venv .venv
-\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\activate.bat
 python -m pytest tests/ -v
 
-# 方式B：不激活 .venv，直接用虚拟环境解释器（最稳妥，避免“ No module named pytest ”）
-Set-Location -Path 'c:\Zhuang\Source\health_platform'; .\.venv\Scripts\python.exe -m pytest tests/ -q
+:: 方式B：不激活 .venv，直接用虚拟环境解释器（最稳妥，避免“ No module named pytest ”）
+cd c:\Zhuang\Source\health_platform
+.\.venv\Scripts\python.exe -m pytest tests/ -q
 
-# 结果: 31/31 测试通过 ✅
+:: 结果: 31/31 测试通过 ✅
 
-# 运行端到端(E2E)测试
-# 1) 先启动后端 http://localhost:5000
-# 2) 安装并使用 Playwright 测试运行器（版本需一致）
-cd tests/e2e
+:: 运行端到端(E2E)测试
+:: 1) 先启动后端 http://localhost:5000
+:: 2) 安装并使用 Playwright 测试运行器（版本需一致）
+cd tests\e2e
 npm install
 npx playwright install --with-deps
 npm run test
 
-# 可覆盖前端基地址（默认 http://localhost:3000）
-set E2E_BASE_URL=http://localhost:3001; npm run test
+:: 可覆盖前端基地址（默认 http://localhost:3000）
+set E2E_BASE_URL=http://localhost:3001 && npm run test
 
 注意：请使用 `npm run test` 或 `npx playwright test` 执行测试，不要使用 `npx run test`（那是另一个社区包，会尝试执行一个名为 test 的本地脚本文件，导致 Cannot find module '...\\test' 错误）。
 ```
@@ -130,27 +133,27 @@ set E2E_BASE_URL=http://localhost:3001; npm run test
 	- 输出详略：`-v` 详细显示每个用例；`-q` 安静模式仅显示必要信息。
 	- 工作目录：请确保在项目根目录执行（包含 `tests/`），或显式传入测试路径（如 `tests/`）。
 
-- 常用命令（PowerShell）：
+- 常用命令（cmd）：
 
-```powershell
-# 全量运行，详细输出
-\.venv\Scripts\python.exe -m pytest tests/ -v
+```cmd
+:: 全量运行，详细输出
+.\.venv\Scripts\python.exe -m pytest tests/ -v
 
-# 单个用例
-\.venv\Scripts\python.exe -m pytest tests/test_auth.py::TestAuthEndpoints::test_health_check -q
+:: 单个用例
+.\.venv\Scripts\python.exe -m pytest tests/test_auth.py::TestAuthEndpoints::test_health_check -q
 
-# 关键字过滤
-\.venv\Scripts\python.exe -m pytest -k "login and not refresh" -v
+:: 关键字过滤
+.\.venv\Scripts\python.exe -m pytest -k "login and not refresh" -v
 
-# 首个失败即停
-\.venv\Scripts\python.exe -m pytest tests/ -x -v
+:: 首个失败即停
+.\.venv\Scripts\python.exe -m pytest tests/ -x -v
 ```
 
 若出现导入错误（如找不到 `pytest` 或 `flask_jwt_extended`），优先确认是否使用了 `.venv` 解释器；必要时重新安装依赖：
 
-```powershell
+```cmd
 python -m venv .venv
-\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\activate.bat
 pip install -r requirements.txt
 ```
 
@@ -191,13 +194,13 @@ health_platform/
 	- 强制建表：设置 `DB_AUTO_CREATE=1` 将始终建表。
 	- 关闭自动建：设置 `DB_CREATE_ON_MISSING=0`，即便缺表也不自动建（适合生产）。
 
-标准化初始化与验证（PowerShell）：
+标准化初始化与验证（cmd）：
 
-```powershell
-\.venv\Scripts\Activate.ps1
-$env:PYTHONPATH='.'; $env:FLASK_APP='src.app'; python -m flask db-info   # 查看方言/字符集/现有表
-$env:PYTHONPATH='.'; $env:FLASK_APP='src.app'; python -m flask db-create # 创建/补齐所有表（幂等）
-$env:PYTHONPATH='.'; $env:FLASK_APP='src.app'; python -m flask db-info   # 再次确认
+```cmd
+.\.venv\Scripts\activate.bat
+set PYTHONPATH=.
+set FLASK_APP=src.app
+python -m flask db-info   :: 查看方言/字符集/现有表
+python -m flask db-create :: 创建/补齐所有表（幂等）
+python -m flask db-info   :: 再次确认
 ```
-
-生产建议：默认关闭“缺表自动建”（`DB_CREATE_ON_MISSING=0`），并在部署流水线中显式执行 `flask db-create` 或采用数据库迁移工具管理结构变更。Generated by Zhuang
