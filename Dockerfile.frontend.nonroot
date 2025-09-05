@@ -5,15 +5,13 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Copy package files
-COPY frontend/package.json ./
-COPY frontend/package-lock.json ./
-
-# Install dependencies with fallback
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
-
-# Copy source and build
+# Copy all frontend files at once to avoid missing file issues
 COPY frontend/ ./
+
+# Install dependencies (npm install handles both cases)
+RUN npm install
+
+# Build the application
 RUN npm run build
 
 # Runtime with Nginx - improved permissions handling
