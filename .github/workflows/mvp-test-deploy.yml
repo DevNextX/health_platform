@@ -72,18 +72,21 @@ jobs:
         run: |
           echo "🎉 Build tests passed! Now pushing images..."
           
+          # Convert repository owner to lowercase
+          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          
           # Build and push frontend
           docker buildx build \
             --file Dockerfile.frontend.nonroot \
-            --tag ghcr.io/${{ github.repository_owner.toLowerCase() }}/health-platform-frontend:mvp-${{ github.sha }} \
-            --tag ghcr.io/${{ github.repository_owner.toLowerCase() }}/health-platform-frontend:mvp-latest \
+            --tag ghcr.io/${REPO_OWNER}/health-platform-frontend:mvp-${{ github.sha }} \
+            --tag ghcr.io/${REPO_OWNER}/health-platform-frontend:mvp-latest \
             --push .
             
           # Build and push backend  
           docker buildx build \
             --file Dockerfile.backend \
-            --tag ghcr.io/${{ github.repository_owner.toLowerCase() }}/health-platform-backend:mvp-${{ github.sha }} \
-            --tag ghcr.io/${{ github.repository_owner.toLowerCase() }}/health-platform-backend:mvp-latest \
+            --tag ghcr.io/${REPO_OWNER}/health-platform-backend:mvp-${{ github.sha }} \
+            --tag ghcr.io/${REPO_OWNER}/health-platform-backend:mvp-latest \
             --push .
 
       # Optional deployment to dev environment

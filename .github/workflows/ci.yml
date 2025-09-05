@@ -58,7 +58,8 @@ jobs:
         id: meta_backend
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/health-platform-backend
+          images: |
+            ghcr.io/${{ github.repository_owner }}/health-platform-backend
           flavor: |
             latest=auto
           tags: |
@@ -66,6 +67,13 @@ jobs:
             type=sha
             type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
             type=raw,value=mvp,enable=${{ startsWith(github.ref_name, 'MVP') }}
+
+      - name: Convert tags to lowercase
+        id: backend_tags_lower
+        run: |
+          TAGS="${{ steps.meta_backend.outputs.tags }}"
+          LOWERCASE_TAGS=$(echo "$TAGS" | tr '[:upper:]' '[:lower:]')
+          echo "tags=$LOWERCASE_TAGS" >> $GITHUB_OUTPUT
 
       - name: Build and push backend image
         uses: docker/build-push-action@v5
@@ -73,7 +81,7 @@ jobs:
           context: .
           file: Dockerfile.backend
           push: true
-          tags: ${{ steps.meta_backend.outputs.tags }}
+          tags: ${{ steps.backend_tags_lower.outputs.tags }}
           labels: ${{ steps.meta_backend.outputs.labels }}
 
       # Frontend metadata (tags/labels)
@@ -81,7 +89,8 @@ jobs:
         id: meta_frontend
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/health-platform-frontend
+          images: |
+            ghcr.io/${{ github.repository_owner }}/health-platform-frontend
           flavor: |
             latest=auto
           tags: |
@@ -89,6 +98,13 @@ jobs:
             type=sha
             type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
             type=raw,value=mvp,enable=${{ startsWith(github.ref_name, 'MVP') }}
+
+      - name: Convert frontend tags to lowercase
+        id: frontend_tags_lower
+        run: |
+          TAGS="${{ steps.meta_frontend.outputs.tags }}"
+          LOWERCASE_TAGS=$(echo "$TAGS" | tr '[:upper:]' '[:lower:]')
+          echo "tags=$LOWERCASE_TAGS" >> $GITHUB_OUTPUT
 
       - name: Build and push frontend image
         id: build_frontend
@@ -97,7 +113,7 @@ jobs:
           context: .
           file: Dockerfile.frontend.nonroot
           push: true
-          tags: ${{ steps.meta_frontend.outputs.tags }}
+          tags: ${{ steps.frontend_tags_lower.outputs.tags }}
           labels: ${{ steps.meta_frontend.outputs.labels }}
 
   deploy:
