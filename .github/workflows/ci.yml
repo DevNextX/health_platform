@@ -124,7 +124,7 @@ jobs:
         with:
           method: kubeconfig
           kubeconfig: ${{ secrets.KUBE_CONFIG }}
-          context: ${{ secrets.KUBE_CONTEXT }}  # Optional: specific context
+          context: ${{ secrets.KUBE_CONTEXT }}
 
       - name: Install envsubst
         run: |
