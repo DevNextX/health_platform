@@ -103,7 +103,7 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.event.inputs.deploy == 'true'
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/MVP') || github.event.inputs.deploy == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
