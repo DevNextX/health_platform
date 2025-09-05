@@ -74,7 +74,6 @@ jobs:
           
           # Build and push frontend
           docker buildx build \
-            --context . \
             --file Dockerfile.frontend.nonroot \
             --tag ghcr.io/${{ github.repository_owner }}/health-platform-frontend:mvp-${{ github.sha }} \
             --tag ghcr.io/${{ github.repository_owner }}/health-platform-frontend:mvp-latest \
@@ -82,7 +81,6 @@ jobs:
             
           # Build and push backend  
           docker buildx build \
-            --context . \
             --file Dockerfile.backend \
             --tag ghcr.io/${{ github.repository_owner }}/health-platform-backend:mvp-${{ github.sha }} \
             --tag ghcr.io/${{ github.repository_owner }}/health-platform-backend:mvp-latest \
@@ -109,14 +107,14 @@ jobs:
           FRONTEND_CPU_REQUEST: 100m
           FRONTEND_MEMORY_LIMIT: 256Mi
           FRONTEND_CPU_LIMIT: 200m
-          KUBE_CONTEXT: ${{ secrets.DEV_KUBE_CONTEXT }}
+          KUBE_CONTEXT: ${{ secrets.KUBE_CONTEXT }}
         run: |
           echo "🚀 Deploying MVP build to Development environment"
           echo "📦 Using image tag: ${IMAGE_TAG}"
           
           # Setup kubectl (only if secrets are available)
-          if [ -n "${{ secrets.DEV_KUBE_CONFIG }}" ] && [ -n "${{ secrets.DEV_KUBE_CONTEXT }}" ]; then
-            echo "${{ secrets.DEV_KUBE_CONFIG }}" | base64 -d > kubeconfig
+          if [ -n "${{ secrets.KUBE_CONFIG }}" ] && [ -n "${{ secrets.KUBE_CONTEXT }}" ]; then
+            echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > kubeconfig
             export KUBECONFIG=kubeconfig
             kubectl config use-context $KUBE_CONTEXT
             
