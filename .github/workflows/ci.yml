@@ -14,11 +14,11 @@ on:
       environment:
         description: 'Deployment Environment'
         required: true
-        default: 'dev'
+        default: 'development'
         type: choice
         options:
-        - dev
-        - prod
+        - development
+        - production
       deploy:
         description: 'Deploy to Kubernetes'
         required: true
