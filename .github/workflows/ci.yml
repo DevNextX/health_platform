@@ -19,6 +19,11 @@ on:
         options:
         - development
         - production
+      skip_build:
+        description: 'Skip build and only deploy existing images'
+        required: false
+        default: false
+        type: boolean
       deploy:
         description: 'Deploy to Kubernetes'
         required: true
@@ -36,6 +41,7 @@ concurrency:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    if: github.event.inputs.skip_build != 'true'
     outputs:
       image_tag: ${{ steps.meta_backend.outputs.tags }}
       image_digest: ${{ steps.build_backend.outputs.digest }}
@@ -125,7 +131,9 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/MVP') || github.event.inputs.deploy == 'true'
+    if: always() && (needs.build-and-push.result == 'success' || github.event.inputs.skip_build == 'true') && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/MVP') || github.event.inputs.deploy == 'true')
+    # Use GitHub Environment for secrets and protection rules
+    environment: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production' || 'development') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -133,13 +141,23 @@ jobs:
       - name: Set deployment environment
         id: env
         run: |
+          echo "🔍 Debugging environment selection:"
+          echo "Branch: ${{ github.ref }}"
+          echo "Manual input: ${{ github.event.inputs.environment }}"
+          echo "Skip build: ${{ github.event.inputs.skip_build }}"
+          
           if [ "${{ github.event.inputs.environment }}" != "" ]; then
             echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+            echo "📋 Using manual environment selection: ${{ github.event.inputs.environment }}"
           elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
-            echo "environment=prod" >> $GITHUB_OUTPUT
+            echo "environment=production" >> $GITHUB_OUTPUT
+            echo "📋 Using production for main branch"
           else
-            echo "environment=dev" >> $GITHUB_OUTPUT
+            echo "environment=development" >> $GITHUB_OUTPUT
+            echo "📋 Using development for feature/MVP branches"
           fi
+          
+          echo "✅ Environment set to: $(cat $GITHUB_OUTPUT | grep environment | cut -d'=' -f2)"
 
       - name: Setup kubectl
         uses: azure/k8s-set-context@v1
@@ -163,8 +181,20 @@ jobs:
           # Load environment config
           source deploy/config/${ENVIRONMENT}.env
           
-          # Override IMAGE_TAG with the built image tag
-          export IMAGE_TAG=sha-${{ github.sha }}
+          # Set IMAGE_TAG priority: Environment Variables > Build Output > SHA fallback
+          if [ -n "${{ vars.IMAGE_TAG }}" ]; then
+            export IMAGE_TAG="${{ vars.IMAGE_TAG }}"
+            echo "📦 Using IMAGE_TAG from environment variables: ${IMAGE_TAG}"
+          elif [ "${{ github.event.inputs.skip_build }}" != "true" ] && [ -n "${{ needs.build-and-push.outputs.image_tag }}" ]; then
+            export IMAGE_TAG="sha-${{ github.sha }}"
+            echo "📦 Using IMAGE_TAG from current build: ${IMAGE_TAG}"
+          else
+            # Use existing IMAGE_TAG from env file or default fallback
+            if [ -z "$IMAGE_TAG" ]; then
+              export IMAGE_TAG="sha-${{ github.sha }}"
+            fi
+            echo "📦 Using IMAGE_TAG from config file or fallback: ${IMAGE_TAG}"
+          fi
           
           # Override cluster configuration from secrets (more secure)
           if [ -n "$KUBE_CONTEXT" ]; then
