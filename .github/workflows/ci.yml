@@ -182,7 +182,7 @@ jobs:
           source deploy/config/${ENVIRONMENT}.env
           
           # Set IMAGE_TAG priority: Environment Variables > Build Output > SHA fallback
-          if [ -n "${{ vars.IMAGE_TAG }}" ]; then
+          if [ -n "${{ vars.IMAGE_TAG }}" ] && [[ "${{ vars.IMAGE_TAG }}" =~ ^[a-zA-Z0-9._-]+$ ]]; then
             export IMAGE_TAG="${{ vars.IMAGE_TAG }}"
             echo "📦 Using IMAGE_TAG from environment variables: ${IMAGE_TAG}"
           elif [ "${{ github.event.inputs.skip_build }}" != "true" ] && [ -n "${{ needs.build-and-push.outputs.image_tag }}" ]; then
@@ -190,7 +190,7 @@ jobs:
             echo "📦 Using IMAGE_TAG from current build: ${IMAGE_TAG}"
           else
             # Use existing IMAGE_TAG from env file or default fallback
-            if [ -z "$IMAGE_TAG" ]; then
+            if [ -z "$IMAGE_TAG" ] || [[ ! "$IMAGE_TAG" =~ ^[a-zA-Z0-9._-]+$ ]]; then
               export IMAGE_TAG="sha-${{ github.sha }}"
             fi
             echo "📦 Using IMAGE_TAG from config file or fallback: ${IMAGE_TAG}"
@@ -204,8 +204,24 @@ jobs:
           
           echo "🚀 Deploying to ${ENVIRONMENT} environment with image tag ${IMAGE_TAG}"
           
+          # Debug: Print all environment variables for troubleshooting
+          echo "🔍 Environment Variables Debug:"
+          echo "NAMESPACE: ${NAMESPACE}"
+          echo "IMAGE_TAG: ${IMAGE_TAG}"
+          echo "REGISTRY_URL: ${REGISTRY_URL}"
+          echo "BACKEND_REPLICAS: ${BACKEND_REPLICAS}"
+          echo "FRONTEND_REPLICAS: ${FRONTEND_REPLICAS}"
+          echo "BACKEND_MEMORY_REQUEST: ${BACKEND_MEMORY_REQUEST}"
+          echo "BACKEND_CPU_REQUEST: ${BACKEND_CPU_REQUEST}"
+          echo "FRONTEND_MEMORY_REQUEST: ${FRONTEND_MEMORY_REQUEST}"
+          echo "FRONTEND_CPU_REQUEST: ${FRONTEND_CPU_REQUEST}"
+          
           # Generate manifests from template
           envsubst < deploy/k8s-template.yaml > deploy/k8s-${ENVIRONMENT}-generated.yaml
+          
+          # Debug: Show generated content (first 50 lines)
+          echo "🔍 Generated YAML (first 50 lines):"
+          head -50 deploy/k8s-${ENVIRONMENT}-generated.yaml
           
           # Create namespace if it doesn't exist
           kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
