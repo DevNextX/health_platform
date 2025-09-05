@@ -14,11 +14,6 @@ on:
         required: false
         type: string
 
-# GitHub Environment for deployment protection
-environment:
-  name: development
-  url: https://dev.health-platform.example.com
-
 permissions:
   contents: read
   packages: write
@@ -30,6 +25,10 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    # GitHub Environment for deployment protection
+    environment:
+      name: development
+      url: https://dev.health-platform.example.com
     steps:
       - name: Checkout
         uses: actions/checkout@v4
