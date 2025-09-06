@@ -177,34 +177,44 @@ jobs:
         run: |
           # Set environment variables for template substitution
           export ENVIRONMENT=${{ steps.env.outputs.environment }}
-          
-          # Load environment config
-          source deploy/config/${ENVIRONMENT}.env
-          
-          # Set IMAGE_TAG priority: Environment Variables > Build Output > SHA fallback
-          if [ -n "${{ vars.IMAGE_TAG }}" ] && [[ "${{ vars.IMAGE_TAG }}" =~ ^[a-zA-Z0-9._-]+$ ]]; then
-            export IMAGE_TAG="${{ vars.IMAGE_TAG }}"
-            echo "📦 Using IMAGE_TAG from environment variables: ${IMAGE_TAG}"
+
+          # Ensure env file exists, normalize line endings and export all variables
+          ENV_FILE=deploy/config/${ENVIRONMENT}.env
+          if [ ! -f "$ENV_FILE" ]; then
+            echo "❌ Missing environment config file: $ENV_FILE"
+            ls -la deploy/config || true
+            exit 1
+          fi
+          # Normalize CRLF and export variables from the file
+          sed -i 's/\r$//' "$ENV_FILE"
+          set -a
+          # shellcheck disable=SC1090
+          source "$ENV_FILE"
+          set +a
+
+          # Validate required vars are present
+          : "${NAMESPACE:?NAMESPACE must be set in $ENV_FILE}"
+          : "${REGISTRY_URL:?REGISTRY_URL must be set in $ENV_FILE}"
+          : "${BACKEND_REPLICAS:?BACKEND_REPLICAS must be set in $ENV_FILE}"
+          : "${FRONTEND_REPLICAS:?FRONTEND_REPLICAS must be set in $ENV_FILE}"
+
+          # IMAGE_TAG selection and validation (allow only safe chars)
+          if printf '%s' "${{ vars.IMAGE_TAG }}" | grep -Eq '^[a-zA-Z0-9._-]+$'; then
+            IMAGE_TAG="${{ vars.IMAGE_TAG }}"
           elif [ "${{ github.event.inputs.skip_build }}" != "true" ] && [ -n "${{ needs.build-and-push.outputs.image_tag }}" ]; then
-            export IMAGE_TAG="sha-${{ github.sha }}"
-            echo "📦 Using IMAGE_TAG from current build: ${IMAGE_TAG}"
+            IMAGE_TAG="sha-${{ github.sha }}"
           else
-            # Use existing IMAGE_TAG from env file or default fallback
-            if [ -z "$IMAGE_TAG" ] || [[ ! "$IMAGE_TAG" =~ ^[a-zA-Z0-9._-]+$ ]]; then
-              export IMAGE_TAG="sha-${{ github.sha }}"
-            fi
-            echo "📦 Using IMAGE_TAG from config file or fallback: ${IMAGE_TAG}"
+            IMAGE_TAG="${IMAGE_TAG:-sha-${{ github.sha }}}"
           fi
-          
-          # Override cluster configuration from secrets (more secure)
+          export IMAGE_TAG
+
+          echo "📦 Using IMAGE_TAG: ${IMAGE_TAG}"
+          echo "📋 Using kubectl context from secrets: $KUBE_CONTEXT"
           if [ -n "$KUBE_CONTEXT" ]; then
-            echo "📋 Using kubectl context from secrets: $KUBE_CONTEXT"
-            kubectl config use-context $KUBE_CONTEXT
+            kubectl config use-context "$KUBE_CONTEXT"
           fi
-          
-          echo "🚀 Deploying to ${ENVIRONMENT} environment with image tag ${IMAGE_TAG}"
-          
-          # Debug: Print all environment variables for troubleshooting
+
+          # Debug: print key variables
           echo "🔍 Environment Variables Debug:"
           echo "NAMESPACE: ${NAMESPACE}"
           echo "IMAGE_TAG: ${IMAGE_TAG}"
@@ -213,36 +223,31 @@ jobs:
           echo "FRONTEND_REPLICAS: ${FRONTEND_REPLICAS}"
           echo "BACKEND_MEMORY_REQUEST: ${BACKEND_MEMORY_REQUEST}"
           echo "BACKEND_CPU_REQUEST: ${BACKEND_CPU_REQUEST}"
-          echo "FRONTEND_MEMORY_REQUEST: ${FRONTEND_MEMORY_REQUEST}"
-          echo "FRONTEND_CPU_REQUEST: ${FRONTEND_CPU_REQUEST}"
-          
-          # Generate manifests from template
-          envsubst < deploy/k8s-template.yaml > deploy/k8s-${ENVIRONMENT}-generated.yaml
-          
-          # Debug: Show generated content (first 50 lines)
+
+          # Use explicit variable list for envsubst to avoid accidental omissions
+          VARS='$NAMESPACE $REGISTRY_URL $IMAGE_TAG $BACKEND_REPLICAS $FRONTEND_REPLICAS $BACKEND_MEMORY_REQUEST $BACKEND_CPU_REQUEST $BACKEND_MEMORY_LIMIT $BACKEND_CPU_LIMIT $FRONTEND_MEMORY_REQUEST $FRONTEND_CPU_REQUEST $FRONTEND_MEMORY_LIMIT $FRONTEND_CPU_LIMIT $FLASK_ENV $CORS_ORIGINS'
+          envsubst "$VARS" < deploy/k8s-template.yaml > deploy/k8s-${ENVIRONMENT}-generated.yaml
+
+          # Show generated YAML head for quick diagnostics
           echo "🔍 Generated YAML (first 50 lines):"
-          head -50 deploy/k8s-${ENVIRONMENT}-generated.yaml
-          
+          head -50 deploy/k8s-${ENVIRONMENT}-generated.yaml || true
+
+          # Validate generated YAML for empty required fields before applying
+          if grep -qE '^\s*name:\s*$|^\s*replicas:\s*$' deploy/k8s-${ENVIRONMENT}-generated.yaml; then
+            echo "❌ Generated YAML contains empty required fields (name or replicas); aborting"
+            sed -n '1,200p' deploy/k8s-${ENVIRONMENT}-generated.yaml
+            exit 1
+          fi
+
           # Create namespace if it doesn't exist
           kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
-          
+
           # Apply the manifests
           kubectl apply -f deploy/k8s-${ENVIRONMENT}-generated.yaml
-          
+
           # Wait for deployment to be ready
           kubectl wait --for=condition=available --timeout=300s deployment/backend -n ${NAMESPACE}
           kubectl wait --for=condition=available --timeout=300s deployment/frontend -n ${NAMESPACE}
-          
+
           echo "✅ Deployment completed successfully!"
           kubectl get pods,svc -n ${NAMESPACE}
-
-      - name: Get service status
-        run: |
-          source deploy/config/${{ steps.env.outputs.environment }}.env
-          echo "🌐 Service information:"
-          kubectl get svc -n ${NAMESPACE}
-          
-          if [ "$SERVICE_TYPE" = "LoadBalancer" ]; then
-            echo "⏳ Waiting for LoadBalancer IP..."
-            kubectl get svc frontend-svc -n ${NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "IP not yet assigned"
-          fi
