@@ -27,13 +27,13 @@ RUN addgroup -g 101 -S nginx || true && \
              /var/cache/nginx/uwsgi_temp \
              /var/cache/nginx/scgi_temp \
              /var/log/nginx \
-             /var/run && \
+             /var/run \
+             /tmp/nginx-conf && \
     chown -R nginx:nginx /var/cache/nginx \
                          /var/log/nginx \
                          /usr/share/nginx/html \
-                         /etc/nginx/conf.d && \
-    chmod -R 755 /var/cache/nginx && \
-    chmod -R 644 /etc/nginx/conf.d && \
+                         /tmp/nginx-conf && \
+    chmod -R 755 /var/cache/nginx /tmp/nginx-conf && \
     touch /var/run/nginx.pid && \
     chown nginx:nginx /var/run/nginx.pid
 
@@ -45,9 +45,10 @@ COPY deploy/nginx-nonroot.conf.template /etc/nginx/templates/default.conf.templa
 COPY deploy/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
-# Create nginx.conf that works with non-root user
+# Create nginx.conf that works with non-root user and includes temp config
 RUN sed -i 's/user  nginx;//g' /etc/nginx/nginx.conf && \
-    sed -i 's/pid        \/var\/run\/nginx.pid;/pid        \/tmp\/nginx.pid;/g' /etc/nginx/nginx.conf
+    sed -i 's/pid        \/var\/run\/nginx.pid;/pid        \/tmp\/nginx.pid;/g' /etc/nginx/nginx.conf && \
+    sed -i 's|include /etc/nginx/conf.d/\*.conf;|include /tmp/nginx-conf/*.conf;|g' /etc/nginx/nginx.conf
 
 ENV API_URL=http://backend:5000 \
     LISTEN_PORT=8080
