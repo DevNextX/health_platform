@@ -154,9 +154,12 @@ jobs:
           elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
             echo "environment=production" >> $GITHUB_OUTPUT
             echo "📋 Using production for main branch"
+          elif [ "${{ github.ref }}" == "refs/heads/staging" ]; then
+            echo "environment=staging" >> $GITHUB_OUTPUT
+            echo "📋 Using staging for staging branch"
           else
             echo "environment=development" >> $GITHUB_OUTPUT
-            echo "📋 Using development for feature/MVP branches"
+            echo "📋 Using development for feature/MVP/dev branches"
           fi
           
           echo "✅ Environment set to: $(cat $GITHUB_OUTPUT | grep environment | cut -d'=' -f2)"
