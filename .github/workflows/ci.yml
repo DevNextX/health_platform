@@ -288,13 +288,16 @@ jobs:
             export JWT_SECRET="dev-secret-change-in-production"
           fi
 
-          # IMAGE_TAG selection and validation (allow only safe chars)
+          # IMAGE_TAG selection and validation - Simplified logic using branch name as default
           if printf '%s' "${{ vars.IMAGE_TAG }}" | grep -Eq '^[a-zA-Z0-9._-]+$'; then
+            # Priority 1: Use GitHub Variables IMAGE_TAG if provided and valid
             IMAGE_TAG="${{ vars.IMAGE_TAG }}"
-          elif [ "${{ github.event.inputs.skip_build }}" != "true" ] && [ -n "${{ needs.build-and-push.outputs.image_tag }}" ]; then
-            IMAGE_TAG="sha-${{ github.sha }}"
+            echo "🏷️ Using GitHub Variables IMAGE_TAG: ${IMAGE_TAG}"
           else
-            IMAGE_TAG="${IMAGE_TAG:-sha-${{ github.sha }}}"
+            # Priority 2: Use branch name as tag (converted to lowercase)
+            BRANCH_NAME="${{ github.ref_name }}"
+            IMAGE_TAG=$(echo "$BRANCH_NAME" | tr '[:upper:]' '[:lower:]')
+            echo "🏷️ Using branch name as IMAGE_TAG: ${IMAGE_TAG} (from branch: $BRANCH_NAME)"
           fi
           export IMAGE_TAG
 
