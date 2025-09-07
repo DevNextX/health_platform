@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "14"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"labels":{"app":"frontend"},"name":"frontend","namespace":"health-platform"},"spec":{"replicas":2,"selector":{"matchLabels":{"app":"frontend"}},"template":{"metadata":{"labels":{"app":"frontend"}},"spec":{"containers":[{"envFrom":[{"configMapRef":{"name":"frontend-config"}}],"image":"ghcr.io/devnextx/health-platform-frontend:sha-8aef88b","imagePullPolicy":"IfNotPresent","livenessProbe":{"httpGet":{"path":"/","port":80},"initialDelaySeconds":30,"periodSeconds":20},"name":"frontend","ports":[{"containerPort":80}],"readinessProbe":{"httpGet":{"path":"/","port":80},"initialDelaySeconds":10,"periodSeconds":10,"timeoutSeconds":3},"resources":{"limits":{"cpu":"250m","memory":"256Mi"},"requests":{"cpu":"50m","memory":"64Mi"}}}],"imagePullSecrets":[{"name":"regcred"}],"securityContext":{"fsGroup":101,"runAsGroup":101,"runAsNonRoot":true,"runAsUser":101}}}}}
+  creationTimestamp: "2025-09-01T08:28:50Z"
+  generation: 14
+  labels:
+    app: frontend
+  name: frontend
+  namespace: health-platform
+  resourceVersion: "92827771"
+  uid: 5e72c03f-3d4a-479e-886b-a2f479c8af52
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 2
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: frontend
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/restartedAt: "2025-09-01T23:46:07+08:00"
+      creationTimestamp: null
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - args:
+        - -g
+        - daemon off;
+        command:
+        - nginx
+        envFrom:
+        - configMapRef:
+            name: frontend-config
+        image: ghcr.io/devnextx/health-platform-frontend:sha-8aef88b
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /nginx-health
+            port: 80
+            scheme: HTTP
+          initialDelaySeconds: 20
+          periodSeconds: 20
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: frontend
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /nginx-health
+            port: 80
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 3
+        resources:
+          limits:
+            cpu: 250m
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/nginx/conf.d
+          name: nginx-conf
+          readOnly: true
+      dnsPolicy: ClusterFirst
+      imagePullSecrets:
+      - name: regcred
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        fsGroup: 101
+        runAsGroup: 101
+        runAsNonRoot: true
+        runAsUser: 101
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: nginx-default.conf
+            path: default.conf
+          name: frontend-nginx-conf
+        name: nginx-conf
+status:
+  conditions:
+  - lastTransitionTime: "2025-09-01T08:28:50Z"
+    lastUpdateTime: "2025-09-01T08:28:50Z"
+    message: Deployment does not have minimum availability.
+    reason: MinimumReplicasUnavailable
+    status: "False"
+    type: Available
+  - lastTransitionTime: "2025-09-04T15:31:57Z"
+    lastUpdateTime: "2025-09-04T15:32:08Z"
+    message: ReplicaSet "frontend-75b76c48cd" is progressing.
+    reason: ReplicaSetUpdated
+    status: "True"
+    type: Progressing
+  observedGeneration: 14
+  replicas: 3
+  unavailableReplicas: 3
+  updatedReplicas: 1
