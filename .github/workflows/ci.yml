@@ -133,7 +133,7 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: always() && (needs.build-and-push.result == 'success' || github.event.inputs.skip_build == 'true') && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/MVP') || startsWith(github.ref, 'refs/heads/dev') || github.event.inputs.deploy == 'true')
+    if: always() && (needs.build-and-push.result == 'success' || github.event.inputs.skip_build == 'true') && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/MVP') || startsWith(github.ref, 'refs/heads/dev') || startsWith(github.ref, 'refs/heads/staging')|| github.event.inputs.deploy == 'true')
     # Use GitHub Environment for secrets and protection rules
     environment: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production' || 'development') }}
     steps:
