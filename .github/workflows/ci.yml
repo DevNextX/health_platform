@@ -9,6 +9,8 @@ on:
       - main
       - 'MVP*'
       - MVP2.0-GPT5
+      - staging
+      - 'dev*'
   workflow_dispatch:
     inputs:
       environment:
