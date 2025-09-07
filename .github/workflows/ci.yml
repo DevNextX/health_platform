@@ -20,6 +20,7 @@ on:
         type: choice
         options:
         - development
+        - staging
         - production
       skip_build:
         description: 'Skip build and only deploy existing images'
@@ -41,13 +42,95 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Check what files changed to determine if we need to build
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      need_build: ${{ steps.changes.outputs.need_build }}
+      skip_build_reason: ${{ steps.changes.outputs.skip_build_reason }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history to compare changes
+
+      - name: Check file changes
+        id: changes
+        run: |
+          echo "🔍 Analyzing file changes to determine build necessity..."
+          
+          # Get the list of changed files
+          if [ "${{ github.event_name }}" == "push" ]; then
+            # For push events, compare with the previous commit
+            if [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+              CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+            else
+              # First commit, check all files
+              CHANGED_FILES=$(git ls-files)
+            fi
+          else
+            # For workflow_dispatch or other events, assume we need to build
+            CHANGED_FILES="force_build"
+          fi
+          
+          echo "📝 Changed files:"
+          echo "$CHANGED_FILES"
+          
+          # Define patterns that DON'T require rebuilding (CI/CD, docs, configs only)
+          SKIP_PATTERNS="^\.github/|^deploy/|^docs/|^\.gitignore|^README|^LICENSE|\.md$|\.yml$|\.yaml$|^Makefile$"
+          
+          # Define patterns that REQUIRE rebuilding (source code, dependencies, Dockerfiles)
+          BUILD_PATTERNS="^src/|^frontend/|^requirements\.txt|^package\.json|^Dockerfile|^\.dockerignore|^static_demo/|^tests/"
+          
+          # Check if any changed files require building
+          NEED_BUILD="false"
+          SKIP_BUILD_REASON=""
+          
+          if echo "$CHANGED_FILES" | grep -E "$BUILD_PATTERNS"; then
+            NEED_BUILD="true"
+            echo "✅ Source code or dependencies changed - build required"
+          elif echo "$CHANGED_FILES" | grep -vE "$SKIP_PATTERNS" | grep -q .; then
+            # Files that don't match either pattern - be safe and build
+            NEED_BUILD="true"  
+            echo "⚠️ Unclassified files changed - building to be safe"
+          else
+            SKIP_BUILD_REASON="Only CI/CD configs, docs, or deployment files changed"
+            echo "🚫 $SKIP_BUILD_REASON"
+          fi
+          
+          # Override: always build if manual trigger requests it or skip_build is false
+          if [ "${{ github.event.inputs.skip_build }}" == "false" ] || [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            if [ "${{ github.event.inputs.skip_build }}" == "false" ]; then
+              NEED_BUILD="true"
+              SKIP_BUILD_REASON=""
+              echo "🔧 Manual workflow dispatch with skip_build=false - forcing build"
+            fi
+          fi
+          
+          echo "need_build=$NEED_BUILD" >> $GITHUB_OUTPUT
+          echo "skip_build_reason=$SKIP_BUILD_REASON" >> $GITHUB_OUTPUT
+          
+          echo "📋 Final decision: NEED_BUILD=$NEED_BUILD"
+          if [ "$SKIP_BUILD_REASON" != "" ]; then
+            echo "📋 Skip reason: $SKIP_BUILD_REASON"
+          fi
+
   build-and-push:
     runs-on: ubuntu-latest
-    if: github.event.inputs.skip_build != 'true'
+    needs: check-changes
+    # Build if: changes require it AND user didn't explicitly skip, OR user explicitly requested build
+    if: (needs.check-changes.outputs.need_build == 'true' && github.event.inputs.skip_build != 'true') || github.event.inputs.skip_build == 'false'
     outputs:
       image_tag: ${{ steps.meta_backend.outputs.tags }}
       image_digest: ${{ steps.build_backend.outputs.digest }}
     steps:
+      - name: Build Decision Summary
+        run: |
+          echo "🏗️ Build Decision Summary:"
+          echo "Changes require build: ${{ needs.check-changes.outputs.need_build }}"
+          echo "Skip build input: ${{ github.event.inputs.skip_build }}"
+          echo "Skip reason: ${{ needs.check-changes.outputs.skip_build_reason }}"
+          echo "✅ Proceeding with build..."
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -131,12 +214,28 @@ jobs:
           labels: ${{ steps.meta_frontend.outputs.labels }}
 
   deploy:
-    needs: build-and-push
+    needs: [check-changes, build-and-push]
     runs-on: ubuntu-latest
-    if: always() && (needs.build-and-push.result == 'success' || github.event.inputs.skip_build == 'true') && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/MVP') || startsWith(github.ref, 'refs/heads/dev') || startsWith(github.ref, 'refs/heads/staging')|| github.event.inputs.deploy == 'true')
+    # Deploy if: build succeeded OR build was skipped but we still want to deploy, AND branch/manual conditions are met
+    if: always() && (needs.build-and-push.result == 'success' || (needs.build-and-push.result == 'skipped' && needs.check-changes.outputs.need_build == 'false')) && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/MVP') || startsWith(github.ref, 'refs/heads/dev') || startsWith(github.ref, 'refs/heads/staging') || github.event.inputs.deploy == 'true')
     # Use GitHub Environment for secrets and protection rules
-    environment: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production' || 'development') }}
+    environment: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production' || (github.ref == 'refs/heads/staging' && 'staging' || 'development')) }}
     steps:
+      - name: Deployment Decision Summary
+        run: |
+          echo "🚀 Deployment Decision Summary:"
+          echo "Build job result: ${{ needs.build-and-push.result }}"
+          echo "Changes needed build: ${{ needs.check-changes.outputs.need_build }}"
+          echo "Skip build reason: ${{ needs.check-changes.outputs.skip_build_reason }}"
+          echo "Manual skip_build input: ${{ github.event.inputs.skip_build }}"
+          
+          if [ "${{ needs.build-and-push.result }}" == "success" ]; then
+            echo "✅ Fresh images built - deploying new version"
+          elif [ "${{ needs.build-and-push.result }}" == "skipped" ]; then
+            echo "📦 Using existing images - deploying config/deployment changes only"
+            echo "💡 Reason: ${{ needs.check-changes.outputs.skip_build_reason }}"
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
       
