@@ -4,6 +4,26 @@
 
 一个完整的个人健康数据记录与管理平台，提供血压、心率等健康指标的记录、分析和可视化功能。
 
+## 📋 重要文档
+
+- 🔐 **[安全配置管理指南](docs/SECURITY-CONFIG.md)** - 配置分层策略与安全最佳实践
+- 🔧 **[GitHub 环境配置指南](docs/GITHUB-ENVIRONMENT-SETUP.md)** - GitHub Environments 设置教程
+- 🚀 **[部署文档](deploy/README.md)** - K8s 部署指南
+
+## 🔒 安全配置
+
+本项目采用三层安全配置管理：
+1. **GitHub Secrets** - 敏感信息（数据库密码、JWT密钥）
+2. **GitHub Variables** - 环境特定配置（CORS域名、副本数）
+3. **Repository Files** - 公共配置（资源限制、命名空间）
+
+### 🔒 CORS 智能默认生成
+- 如果未设置 `CORS_ORIGINS`，系统自动基于 `NAMESPACE` 生成安全默认值
+- 默认值：`http://localhost:3000,http://127.0.0.1:3000,http://frontend-svc.{NAMESPACE}.svc.cluster.local:80`
+- 确保默认只允许前端服务和本地开发访问，提高安全性
+
+详见 [SECURITY-CONFIG.md](docs/SECURITY-CONFIG.md)
+
 ## 🚀 已完成功能
 
 ```cmd
