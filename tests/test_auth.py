@@ -11,7 +11,7 @@ class TestAuthEndpoints:
     
     def test_health_check(self, client):
         """Test the health check endpoint"""
-        response = client.get('/healthz')
+        response = client.get('/api/healthz')
         assert response.status_code == 200
         data = response.get_json()
         assert data['status'] == 'ok'
