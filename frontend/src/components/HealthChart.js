@@ -16,6 +16,7 @@ import { CanvasRenderer } from 'echarts/renderers';
 import { Empty, Select, Space, Button } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { useTranslation } from 'react-i18next';
 
 const { Option } = Select;
 
@@ -30,6 +31,7 @@ echarts.use([
 ]);
 
 const HealthChart = ({ records = [] }) => {
+  const { t } = useTranslation();
   const [timeRange, setTimeRange] = useState('week'); // week, month, all
   const [filteredRecords, setFilteredRecords] = useState([]);
 
@@ -82,12 +84,12 @@ const HealthChart = ({ records = [] }) => {
       <div>
         <Space style={{ marginBottom: 16 }}>
           <Select value={timeRange} onChange={setTimeRange} style={{ width: 120 }}>
-            <Option value="week">最近一周</Option>
-            <Option value="month">最近一月</Option>
-            <Option value="all">全部</Option>
+      <Option value="week">{t('chart.range.week')}</Option>
+      <Option value="month">{t('chart.range.month')}</Option>
+      <Option value="all">{t('chart.range.all')}</Option>
           </Select>
         </Space>
-        <Empty description="暂无数据" />
+    <Empty description={t('chart.noData')} />
       </div>
     );
   }
@@ -108,7 +110,7 @@ const HealthChart = ({ records = [] }) => {
 
   const option = {
     title: {
-      text: '健康趋势图',
+  text: t('dashboard.chartTitle'),
       left: 'center',
     },
   tooltip: {
@@ -120,7 +122,7 @@ const HealthChart = ({ records = [] }) => {
         let result = `${params[0].axisValue}<br/>`;
         params.forEach(param => {
           if (param.value !== null) {
-      const unit = param.seriesName === '心率' ? ' bpm' : ' mmHg';
+      const unit = param.seriesName === t('chart.series.hr') ? ' bpm' : ' mmHg';
       result += `${param.seriesName}: ${param.value}${unit}<br/>`;
           }
         });
@@ -128,7 +130,7 @@ const HealthChart = ({ records = [] }) => {
       },
     },
     legend: {
-      data: ['收缩压', '舒张压', '心率'],
+      data: [t('chart.series.systolic'), t('chart.series.diastolic'), t('chart.series.hr')],
       top: 30,
     },
     grid: {
@@ -149,7 +151,7 @@ const HealthChart = ({ records = [] }) => {
     yAxis: [
       {
         type: 'value',
-        name: '血压 (mmHg)',
+  name: t('chart.yaxis.bp'),
         position: 'left',
         axisLabel: {
           formatter: '{value} mmHg',
@@ -159,7 +161,7 @@ const HealthChart = ({ records = [] }) => {
       },
       {
         type: 'value',
-        name: '心率 (bpm)',
+  name: t('chart.yaxis.hr'),
         position: 'right',
         axisLabel: {
           formatter: '{value} bpm',
@@ -170,7 +172,7 @@ const HealthChart = ({ records = [] }) => {
     ],
     series: [
       {
-        name: '收缩压',
+  name: t('chart.series.systolic'),
         type: 'line',
         yAxisIndex: 0,
         data: systolicData,
@@ -191,7 +193,7 @@ const HealthChart = ({ records = [] }) => {
         },
       },
       {
-        name: '舒张压',
+  name: t('chart.series.diastolic'),
         type: 'line',
         yAxisIndex: 0,
         data: diastolicData,
@@ -212,7 +214,7 @@ const HealthChart = ({ records = [] }) => {
         },
       },
       {
-        name: '心率',
+  name: t('chart.series.hr'),
         type: 'line',
         yAxisIndex: 1,
         data: heartRateData,
@@ -250,16 +252,16 @@ const HealthChart = ({ records = [] }) => {
     <div>
       <Space style={{ marginBottom: 16, justifyContent: 'space-between', width: '100%' }}>
         <Select value={timeRange} onChange={setTimeRange} style={{ width: 120 }}>
-          <Option value="week">最近一周</Option>
-          <Option value="month">最近一月</Option>
-          <Option value="all">全部</Option>
+          <Option value="week">{t('chart.range.week')}</Option>
+          <Option value="month">{t('chart.range.month')}</Option>
+          <Option value="all">{t('chart.range.all')}</Option>
         </Select>
         <Button 
           icon={<DownloadOutlined />} 
           onClick={downloadChart}
           type="default"
         >
-          下载图表
+          {t('chart.download')}
         </Button>
       </Space>
       

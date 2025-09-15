@@ -62,7 +62,8 @@ db.sqlite3
 db.sqlite3-journal
 
 # Flask stuff:
-instance/
+instance/*.db
+!instance/.gitkeep
 .webassets-cache
 
 # Scrapy stuff:
@@ -226,11 +227,11 @@ pnpm-debug.log*
 .stylelintcache
 *.tsbuildinfo
 
-# Lockfiles (this project installs deps dynamically; do not commit)
-package-lock.json
+# Lockfiles (frontend package-lock.json should be committed for Docker builds)
+# package-lock.json  # Root level ignored for monorepo
 yarn.lock
 pnpm-lock.yaml
-frontend/package-lock.json
+# frontend/package-lock.json  # Frontend lockfile should be committed for reproducible builds
 frontend/yarn.lock
 frontend/pnpm-lock.yaml
 

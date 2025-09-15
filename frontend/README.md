@@ -27,7 +27,7 @@
 
 ### 1. 安装依赖
 
-```bash
+```cmd
 cd frontend
 npm install
 ```
@@ -42,7 +42,7 @@ REACT_APP_API_URL=http://localhost:5000
 
 ### 3. 启动开发服务器
 
-```bash
+```cmd
 npm start
 ```
 
@@ -50,7 +50,7 @@ npm start
 
 ### 4. 构建生产版本
 
-```bash
+```cmd
 npm run build
 ```
 

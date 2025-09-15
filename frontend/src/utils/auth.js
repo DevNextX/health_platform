@@ -24,12 +24,19 @@ export const clearTokens = () => {
 export const isAuthenticated = () => {
   const token = getToken();
   if (!token) return false;
-
   try {
-    // Simple token expiry check (JWT payload is base64 encoded)
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    // JWT uses base64url encoding (no padding, -_/). Normalize then decode.
+    const b64 = token.split('.')[1];
+    if (!b64) return false;
+    // base64url -> base64
+    let base64 = b64.replace(/-/g, '+').replace(/_/g, '/');
+    // add padding
+    const pad = base64.length % 4;
+    if (pad) base64 += '='.repeat(4 - pad);
+    const json = atob(base64);
+    const payload = JSON.parse(json);
     const currentTime = Date.now() / 1000;
-    return payload.exp > currentTime;
+    return payload.exp && payload.exp > currentTime;
   } catch (error) {
     return false;
   }
@@ -38,10 +45,15 @@ export const isAuthenticated = () => {
 export const getUserIdFromToken = () => {
   const token = getToken();
   if (!token) return null;
-
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.sub;
+    const b64 = token.split('.')[1];
+    if (!b64) return null;
+    let base64 = b64.replace(/-/g, '+').replace(/_/g, '/');
+    const pad = base64.length % 4;
+    if (pad) base64 += '='.repeat(4 - pad);
+    const json = atob(base64);
+    const payload = JSON.parse(json);
+    return payload.sub || payload.identity || null;
   } catch (error) {
     return null;
   }
