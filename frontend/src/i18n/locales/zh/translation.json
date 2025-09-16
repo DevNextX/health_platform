@@ -65,6 +65,7 @@
   "health.form.systolic": "收缩压 (mmHg)",
   "health.form.diastolic": "舒张压 (mmHg)",
   "health.form.heartRate": "心率 (bpm)",
+  "health.form.systolicGreaterThanDiastolic": "收缩压必须大于舒张压",
   "health.form.tags": "标签",
   "health.form.notes": "备注",
   "health.form.save": "保存",
