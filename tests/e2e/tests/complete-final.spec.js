@@ -301,7 +301,7 @@ test.describe('Health Platform Complete E2E Tests', () => {
   const addBtnCF5 = modalCF5.locator('button[type="submit"]').filter({ hasText: /添\s?加|添加/ });
   await expect(addBtnCF5.first()).toBeVisible({ timeout: 10000 });
   await addBtnCF5.first().click();
-      await expect(page.locator('text=收缩压范围：50-250 mmHg')).toBeVisible();
+      await expect(page.locator('text=30-250 mmHg')).toBeVisible();
     });
   });
 

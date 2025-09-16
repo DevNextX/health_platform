@@ -507,9 +507,6 @@ const HealthRecords = () => {
               max={150}
             />
           </Form.Item>
-              max={200}
-            />
-          </Form.Item>
 
           <Form.Item
             name="tags"
