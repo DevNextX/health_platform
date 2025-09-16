@@ -168,5 +168,10 @@
   "tags.dizziness": "头晕",
   "tags.chest_tightness": "胸闷",
   "tags.palpitations": "心悸",
-  "tags.fatigue": "疲劳"
+  "tags.fatigue": "疲劳",
+  
+  "validation.bloodPressureRange": "血压范围需在 30-250 mmHg",
+  "validation.heartRateRange": "心率范围需在 30-150 bpm",
+  "validation.systolicGreaterThanDiastolic": "收缩压必须大于舒张压",
+  "validation.invalidNumber": "请输入有效的数字"
 }

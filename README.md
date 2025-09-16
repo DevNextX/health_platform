@@ -86,6 +86,13 @@ set FLASK_APP=src.app
 python -m flask run --host=0.0.0.0 --port=5000
 ```
 
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+export PYTHONPATH=. && export FLASK_APP=src.app && python -m flask run --host=0.0.0.0 --port=5000
+
 ### 2. 启动前端（开发模式）
 
 ```cmd

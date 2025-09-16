@@ -168,5 +168,10 @@
   "tags.dizziness": "Dizziness",
   "tags.chest_tightness": "Chest Tightness",
   "tags.palpitations": "Palpitations",
-  "tags.fatigue": "Fatigue"
+  "tags.fatigue": "Fatigue",
+
+  "validation.bloodPressureRange": "Blood pressure range must be 30-250 mmHg",
+  "validation.heartRateRange": "Heart rate range must be 30-150 bpm",
+  "validation.systolicGreaterThanDiastolic": "Systolic pressure must be greater than diastolic pressure",
+  "validation.invalidNumber": "Please enter a valid number"
 }
