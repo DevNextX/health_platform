@@ -9,6 +9,8 @@
 - 🔐 **[安全配置管理指南](docs/SECURITY-CONFIG.md)** - 配置分层策略与安全最佳实践
 - 🔧 **[GitHub 环境配置指南](docs/GITHUB-ENVIRONMENT-SETUP.md)** - GitHub Environments 设置教程
 - 🚀 **[部署文档](deploy/README.md)** - K8s 部署指南
+- 📝 **[变更日志](CHANGELOG.md)** - 版本变更记录
+ - 🔑 **[管理员重置密码流程](docs/ADMIN-PASSWORD-RESET.md)** · **[EN](docs/ADMIN-PASSWORD-RESET.en.md)**
 
 ## 🔒 安全配置
 
@@ -215,6 +217,29 @@ health_platform/
 - CSV数据导出  
 - 微信小程序
 - Azure容器化部署
+
+## ⬆️ 升级指南（Schema 变更与版本）
+
+当后端引入数据库结构变更（如本次增加 `users.role`、`users.must_change_password`、`users.last_login_at`）时，请按以下步骤安全升级：
+
+- 开发/测试环境（便捷）
+  - 后端启动时会做“最佳努力”的列补齐：若检测到 `users` 表缺少上述列，会自动执行 `ALTER TABLE` 添加，避免 500 错误。
+  - 这种方式适用于本地或临时环境，不建议用于生产的长期演进。
+
+- 生产环境（推荐）
+  - 使用 Alembic/Flask-Migrate 进行标准迁移：
+    - 安装依赖：`pip install -r requirements.txt`
+    - 设置环境：`export FLASK_APP=src.app`
+    - 执行迁移：`flask db upgrade`
+    - 如需离线生成 SQL，可用 Alembic offline 模式或将 `flask db upgrade` 运行在准备好的环境。
+  - 回滚：`flask db downgrade <revision>`（仅在必要时使用）。
+
+- 版本号与变更日志
+  - 后端版本来自 `APP_VERSION`（见 `.env.example`），也可直接修改 `src/config.py` 的 `VERSION` 默认值。
+  - 版本接口：`GET /api/v1/version`。
+  - 变更记录：见 `CHANGELOG.md`。
+
+注意：生产环境应优先使用迁移脚本来管理结构变更，以便审计与回滚；自动列补齐仅作为防守性补救，避免升级遗漏导致运行时 500。
 
 ## 🛠️ 容器化部署经验总结
 

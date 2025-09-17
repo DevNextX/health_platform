@@ -28,3 +28,5 @@ class Config:
     ).split(",")
     RATELIMIT_DEFAULT = os.getenv("RATELIMIT_DEFAULT", "60 per minute")
     RATELIMIT_AUTH = os.getenv("RATELIMIT_AUTH", "5 per minute")
+    # Application version
+    VERSION = os.getenv("APP_VERSION", "0.1.0")

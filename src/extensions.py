@@ -6,8 +6,16 @@ from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_cors import CORS
+try:
+    from flask_migrate import Migrate
+except Exception:  # pragma: no cover - dev convenience when Flask-Migrate not installed
+    class _DummyMigrate:
+        def init_app(self, *args, **kwargs):
+            pass
+    Migrate = _DummyMigrate  # type: ignore
 
 db = SQLAlchemy()
 jwt = JWTManager()
 limiter = Limiter(key_func=get_remote_address, default_limits=[])
 cors = CORS()
+migrate = Migrate()

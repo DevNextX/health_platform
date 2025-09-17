@@ -22,7 +22,9 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token');
-    if (token) {
+    // Do not override explicit Authorization header (e.g., when sending refresh token)
+    const hasExplicitAuth = config?.headers && Object.prototype.hasOwnProperty.call(config.headers, 'Authorization');
+    if (token && !hasExplicitAuth) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -82,6 +84,7 @@ export const authAPI = {
   // logout requires refresh token; allow passing custom config with headers
   logout: (config) => api.post('/api/v1/auth/logout', {}, config),
   logoutAll: () => api.post('/api/v1/auth/logout-all'),
+  changePassword: (payload) => api.post('/api/v1/auth/change-password', payload),
 };
 
 // User APIs
@@ -107,6 +110,19 @@ export const memberAPI = {
   create: (member) => api.post('/api/v1/members', member),
   update: (memberId, member) => api.put(`/api/v1/members/${memberId}`, member),
   remove: (memberId) => api.delete(`/api/v1/members/${memberId}`),
+};
+
+// Meta APIs
+export const metaAPI = {
+  getVersion: () => api.get('/api/v1/version'),
+};
+
+// Admin APIs
+export const adminAPI = {
+  listUsers: () => api.get('/api/v1/admin/users'),
+  promoteAdmin: (userId) => api.post(`/api/v1/admin/users/${userId}/promote-admin`),
+  demoteAdmin: (userId) => api.post(`/api/v1/admin/users/${userId}/demote-admin`),
+  resetPassword: (userId) => api.post(`/api/v1/admin/users/${userId}/reset-password`, {}),
 };
 
 export default api;

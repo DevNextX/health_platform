@@ -58,3 +58,37 @@ export const getUserIdFromToken = () => {
     return null;
   }
 };
+
+export const getMustChangeFromToken = () => {
+  const token = getToken();
+  if (!token) return false;
+  try {
+    const b64 = token.split('.')[1];
+    if (!b64) return false;
+    let base64 = b64.replace(/-/g, '+').replace(/_/g, '/');
+    const pad = base64.length % 4;
+    if (pad) base64 += '='.repeat(4 - pad);
+    const json = atob(base64);
+    const payload = JSON.parse(json);
+    return !!payload.must_change_password;
+  } catch (e) {
+    return false;
+  }
+};
+
+export const getRoleFromToken = () => {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const b64 = token.split('.')[1];
+    if (!b64) return null;
+    let base64 = b64.replace(/-/g, '+').replace(/_/g, '/');
+    const pad = base64.length % 4;
+    if (pad) base64 += '='.repeat(4 - pad);
+    const json = atob(base64);
+    const payload = JSON.parse(json);
+    return payload.role || null;
+  } catch (error) {
+    return null;
+  }
+};
