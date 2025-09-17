@@ -37,7 +37,7 @@ python -m pytest tests/ -v
 cd c:\Zhuang\Source\health_platform
 .\.venv\Scripts\python.exe -m pytest tests/ -q
 
-:: 结果: 31/31 测试通过 ✅
+
 
 :: Kubernetes 部署验证测试
 kubectl get pods -n health-platform
