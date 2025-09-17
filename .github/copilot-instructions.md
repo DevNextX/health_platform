@@ -100,12 +100,14 @@
   - Install deps: `pip install -r requirements.txt`
   - Env vars + run Flask:
     - PowerShell: `$env:PYTHONPATH='.'; $env:FLASK_APP='src.app'; python -m flask run --host=0.0.0.0 --port=5000`
+
     - cmd: `set PYTHONPATH=. && set FLASK_APP=src.app && python -m flask run --host=0.0.0.0 --port=5000`
     - Bash: `export PYTHONPATH=. && export FLASK_APP=src.app && python -m flask run --host=0.0.0.0 --port=5000`
 - Unit tests (any shell, in a new terminal): `python -m pytest -q` (or use `.\.venv\Scripts\python.exe -m pytest -q` to specify interpreter)
 - Frontend dev (in terminal 2): `cd frontend` → `npm install` → `npm start`
 - E2E (backend+frontend running, in terminal 3): `cd tests/e2e` → `npm install` → `npx playwright install --with-deps` → `npm run test`
 Note: For PowerShell, avoid `&&`; use semicolons or newlines instead. Bash/cmd can use `&&`.
+
 
 ### Frontend conventions
 - Auth: Axios interceptors attach `Authorization: Bearer <access>`. Refresh uses the refresh token as Bearer when calling `/api/v1/auth/refresh` & logout.
