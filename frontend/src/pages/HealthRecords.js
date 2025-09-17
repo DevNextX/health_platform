@@ -457,8 +457,6 @@ const HealthRecords = () => {
                   data-testid="systolic-pressure"
                   placeholder={t('health.form.systolic')}
                   style={{ width: '100%' }}
-                  min={30}
-                  max={250}
                   precision={0}
                 />
               </Form.Item>
@@ -484,8 +482,6 @@ const HealthRecords = () => {
                   data-testid="diastolic-pressure"
                   placeholder={t('health.form.diastolic')}
                   style={{ width: '100%' }}
-                  min={30}
-                  max={250}
                   precision={0}
                 />
               </Form.Item>
@@ -503,8 +499,6 @@ const HealthRecords = () => {
               data-testid="heart-rate"
               placeholder={t('health.form.heartRate')}
               style={{ width: '100%' }}
-              min={30}
-              max={150}
               precision={0}
             />
           </Form.Item>
@@ -527,15 +521,23 @@ const HealthRecords = () => {
             />
           </Form.Item>
 
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit">
-                {editingRecord ? t('health.form.update') : t('health.form.save')}
-              </Button>
-              <Button onClick={() => setModalVisible(false)}>
-                {t('health.form.cancel')}
-              </Button>
-            </Space>
+          <Form.Item shouldUpdate>
+            {() => {
+              const hasErrors = form.getFieldsError().some(({ errors }) => errors.length);
+              const values = form.getFieldsValue();
+              const missingRequired = !values.timestamp || values.systolic_pressure === undefined || values.diastolic_pressure === undefined;
+              const disabled = hasErrors || missingRequired;
+              return (
+                <Space>
+                  <Button type="primary" htmlType="submit" disabled={disabled}>
+                    {editingRecord ? t('health.form.update') : t('health.form.save')}
+                  </Button>
+                  <Button onClick={() => setModalVisible(false)}>
+                    {t('health.form.cancel')}
+                  </Button>
+                </Space>
+              );
+            }}
           </Form.Item>
         </Form>
       </Modal>
