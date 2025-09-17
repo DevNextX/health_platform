@@ -89,7 +89,9 @@
 - Keep edits minimal, preserve public APIs, and match existing patterns.
 
 ### Developer workflows (shell‑agnostic)
-- Backend venv + run (activate per shell):
+**IMPORTANT**: The backend and frontend services must be run in **separate, dedicated terminal windows**. Do not close these terminals or run other commands in them, as this will terminate the services. Open a new terminal for any subsequent commands (e.g., running tests).
+
+- Backend venv + run (in terminal 1):
   - Create venv (all shells): `python -m venv .venv`
   - Activate:
     - PowerShell: `./.venv/Scripts/Activate.ps1`
@@ -98,12 +100,12 @@
   - Install deps: `pip install -r requirements.txt`
   - Env vars + run Flask:
     - PowerShell: `$env:PYTHONPATH='.'; $env:FLASK_APP='src.app'; python -m flask run --host=0.0.0.0 --port=5000`
-    - cmd: `set PYTHONPATH=.` then `set FLASK_APP=src.app` then `python -m flask run --host=0.0.0.0 --port=5000`
-    - Bash: `export PYTHONPATH=.` then `export FLASK_APP=src.app` then `python -m flask run --host=0.0.0.0 --port=5000`
-- Unit tests (any shell): `python -m pytest -q` (或使用 `./.venv/Scripts/python.exe -m pytest -q` 指定解释器)
-- Frontend dev (any shell): `cd frontend` → `npm install` → `npm start`
-- E2E (backend+frontend running): `cd tests/e2e` → `npm install` → `npx playwright install --with-deps` → `npm run test`
-Note: PowerShell 中避免使用 `&&`，请用分号或换行；Bash/cmd 可使用 `&&` 连接。
+    - cmd: `set PYTHONPATH=. && set FLASK_APP=src.app && python -m flask run --host=0.0.0.0 --port=5000`
+    - Bash: `export PYTHONPATH=. && export FLASK_APP=src.app && python -m flask run --host=0.0.0.0 --port=5000`
+- Unit tests (any shell, in a new terminal): `python -m pytest -q` (or use `.\.venv\Scripts\python.exe -m pytest -q` to specify interpreter)
+- Frontend dev (in terminal 2): `cd frontend` → `npm install` → `npm start`
+- E2E (backend+frontend running, in terminal 3): `cd tests/e2e` → `npm install` → `npx playwright install --with-deps` → `npm run test`
+Note: For PowerShell, avoid `&&`; use semicolons or newlines instead. Bash/cmd can use `&&`.
 
 ### Frontend conventions
 - Auth: Axios interceptors attach `Authorization: Bearer <access>`. Refresh uses the refresh token as Bearer when calling `/api/v1/auth/refresh` & logout.
