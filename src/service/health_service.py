@@ -19,30 +19,101 @@ manager = HealthManager()
 member_mgr = MemberManager()
 
 
+def _parse_int(value):
+    if value is None:
+        raise TypeError("missing")
+    if isinstance(value, int):
+        return value
+    # Reject floats and numeric-like strings with decimals
+    if isinstance(value, float):
+        raise ValueError("not integer")
+    if isinstance(value, str) and value.strip() != "" and value.isdigit():
+        return int(value)
+    # For strings like "120.5" or non-digits, raise
+    raise ValueError("invalid format")
+
+
+def _validate_health_record_payload(data, for_update=False, current=None):
+    """Validate payload for create/update. Return (clean, errors)."""
+    errors = {}
+    clean = {}
+
+    # systolic
+    if not for_update or ("systolic" in data):
+        val = data.get("systolic")
+        if val is None or (isinstance(val, str) and val.strip() == ""):
+            if not for_update:
+                errors.setdefault("systolic", []).append("required")
+        else:
+            try:
+                s = _parse_int(val)
+                if not (30 <= s <= 250):
+                    errors.setdefault("systolic", []).append("must be between 30-250")
+                else:
+                    clean["systolic"] = s
+            except (TypeError, ValueError):
+                errors.setdefault("systolic", []).append("must be an integer")
+
+    # diastolic
+    if not for_update or ("diastolic" in data):
+        val = data.get("diastolic")
+        if val is None or (isinstance(val, str) and val.strip() == ""):
+            if not for_update:
+                errors.setdefault("diastolic", []).append("required")
+        else:
+            try:
+                d = _parse_int(val)
+                if not (30 <= d <= 250):
+                    errors.setdefault("diastolic", []).append("must be between 30-250")
+                else:
+                    clean["diastolic"] = d
+            except (TypeError, ValueError):
+                errors.setdefault("diastolic", []).append("must be an integer")
+
+    # heart_rate optional; allow explicit empty to clear on update
+    if ("heart_rate" in data) or not for_update:
+        val = data.get("heart_rate")
+        if val is None or (isinstance(val, str) and val.strip() == ""):
+            clean["heart_rate"] = None
+        else:
+            try:
+                hr = _parse_int(val)
+                if not (30 <= hr <= 150):
+                    errors.setdefault("heart_rate", []).append("must be between 30-150")
+                else:
+                    clean["heart_rate"] = hr
+            except (TypeError, ValueError):
+                errors.setdefault("heart_rate", []).append("must be an integer")
+
+    # relation check when both values are known (from payload or current)
+    s_eff = clean.get("systolic") if "systolic" in clean else (current.systolic if current and hasattr(current, "systolic") else None)
+    d_eff = clean.get("diastolic") if "diastolic" in clean else (current.diastolic if current and hasattr(current, "diastolic") else None)
+    if s_eff is not None and d_eff is not None:
+        if s_eff <= d_eff:
+            errors.setdefault("_schema", []).append("systolic must be greater than diastolic")
+
+    return clean, errors
+
+
 @health_bp.route("", methods=["POST"])
 @jwt_required()
 def create_record():
     user_id = get_jwt_identity()
     data = request.get_json(force=True) or {}
-    try:
-        systolic = int(data.get("systolic"))
-        diastolic = int(data.get("diastolic"))
-    except (TypeError, ValueError):
-        return jsonify(error("400", "Invalid blood pressure")), 400
-    if not (50 <= systolic <= 250) or not (50 <= diastolic <= 250):
-        return jsonify(error("422", "Blood pressure out of range (50-250)")), 422
-    heart_rate = data.get("heart_rate")
-    if heart_rate is not None:
-        try:
-            heart_rate = int(heart_rate)
-        except (TypeError, ValueError):
-            return jsonify(error("400", "Invalid heart_rate")), 400
+
+    clean, errors = _validate_health_record_payload(data, for_update=False)
+    if errors:
+        return jsonify(error("400", "Validation error", details=errors)), 400
+
+    systolic = clean.get("systolic")
+    diastolic = clean.get("diastolic")
+    heart_rate = clean.get("heart_rate")
     ts_raw = data.get("timestamp")
     # Use timezone-aware UTC datetime to avoid deprecation warnings
     ts = datetime.now(UTC) if not ts_raw else datetime.fromisoformat(ts_raw.replace("Z", "+00:00"))
     tags = data.get("tags") or []
     if not isinstance(tags, list):
-        return jsonify(error("400", "tags must be a list")), 400
+        return jsonify(error("400", "Validation error", details={"tags": ["must be a list"]})), 400
     note = data.get("note")
 
     # Determine subject member (default to self member if not provided)
@@ -357,29 +428,17 @@ def update_record(rec_id: int):
     if not rec:
         return jsonify(error("404", "Record not found")), 404
     data = request.get_json(force=True) or {}
-    if "systolic" in data:
-        try:
-            rec.systolic = int(data["systolic"])
-        except (TypeError, ValueError):
-            return jsonify(error("400", "Invalid systolic")), 400
-        if not (50 <= rec.systolic <= 250):
-            return jsonify(error("422", "Blood pressure out of range (50-250)")), 422
-    if "diastolic" in data:
-        try:
-            rec.diastolic = int(data["diastolic"])
-        except (TypeError, ValueError):
-            return jsonify(error("400", "Invalid diastolic")), 400
-        if not (50 <= rec.diastolic <= 250):
-            return jsonify(error("422", "Blood pressure out of range (50-250)")), 422
-    if "heart_rate" in data:
-        try:
-            rec.heart_rate = int(data["heart_rate"])
-        except (TypeError, ValueError):
-            return jsonify(error("400", "Invalid heart_rate")), 400
+    clean, errors = _validate_health_record_payload(data, for_update=True, current=rec)
+    if errors:
+        return jsonify(error("400", "Validation error", details=errors)), 400
+    # apply updates
+    for k in ("systolic", "diastolic", "heart_rate"):
+        if k in clean:
+            setattr(rec, k, clean[k])
     if "tags" in data:
         tags = data.get("tags") or []
         if not isinstance(tags, list):
-            return jsonify(error("400", "tags must be a list")), 400
+            return jsonify(error("400", "Validation error", details={"tags": ["must be a list"]})), 400
         rec.tags = json.dumps(tags)
     if "note" in data:
         rec.note = data.get("note")
