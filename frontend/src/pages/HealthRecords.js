@@ -440,17 +440,26 @@ const HealthRecords = () => {
               <Form.Item
                 name="systolic_pressure"
                 label={t('health.form.systolic')}
+                dependencies={["diastolic_pressure"]}
                 rules={[
                   { required: true, message: t('health.form.systolic') },
-                  { type: 'number', min: 50, max: 250, message: '50-250 mmHg' }
+                  { type: 'number', min: 30, max: 250, message: t('health.validation.bpRange') },
+                  {
+                    validator: (_, value) => {
+                      const d = form.getFieldValue('diastolic_pressure');
+                      if (value === undefined || value === null || d === undefined || d === null) return Promise.resolve();
+                      return value > d ? Promise.resolve() : Promise.reject(new Error(t('health.validation.bpRelation')));
+                    }
+                  }
                 ]}
               >
                 <InputNumber
                   data-testid="systolic-pressure"
                   placeholder={t('health.form.systolic')}
                   style={{ width: '100%' }}
-                  min={50}
+                  min={30}
                   max={250}
+                  precision={0}
                 />
               </Form.Item>
             </Col>
@@ -458,17 +467,26 @@ const HealthRecords = () => {
               <Form.Item
                 name="diastolic_pressure"
                 label={t('health.form.diastolic')}
+                dependencies={["systolic_pressure"]}
                 rules={[
                   { required: true, message: t('health.form.diastolic') },
-                  { type: 'number', min: 50, max: 250, message: '50-250 mmHg' }
+                  { type: 'number', min: 30, max: 250, message: t('health.validation.bpRange') },
+                  {
+                    validator: (_, value) => {
+                      const s = form.getFieldValue('systolic_pressure');
+                      if (value === undefined || value === null || s === undefined || s === null) return Promise.resolve();
+                      return s > value ? Promise.resolve() : Promise.reject(new Error(t('health.validation.bpRelation')));
+                    }
+                  }
                 ]}
               >
                 <InputNumber
                   data-testid="diastolic-pressure"
                   placeholder={t('health.form.diastolic')}
                   style={{ width: '100%' }}
-                  min={50}
+                  min={30}
                   max={250}
+                  precision={0}
                 />
               </Form.Item>
             </Col>
@@ -478,7 +496,7 @@ const HealthRecords = () => {
             name="heart_rate"
             label={t('health.form.heartRate')}
             rules={[
-              { type: 'number', min: 30, max: 200, message: '30-200 bpm' }
+              { type: 'number', min: 30, max: 150, message: t('health.validation.hrRange') }
             ]}
           >
             <InputNumber
@@ -486,7 +504,8 @@ const HealthRecords = () => {
               placeholder={t('health.form.heartRate')}
               style={{ width: '100%' }}
               min={30}
-              max={200}
+              max={150}
+              precision={0}
             />
           </Form.Item>
 
