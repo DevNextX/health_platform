@@ -40,20 +40,26 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Skip refresh logic for refresh endpoint to prevent infinite loop
+    if (originalRequest.url?.includes('/auth/refresh')) {
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
         const refreshToken = localStorage.getItem('refresh_token');
         if (refreshToken) {
-          // Use the same axios instance baseURL to avoid mismatch
-          const response = await api.post(`/api/v1/auth/refresh`, {}, {
+          // Create a separate axios instance for refresh to avoid interceptor loop
+          const refreshResponse = await axios.post(`${BASE_URL}/api/v1/auth/refresh`, {}, {
             headers: {
+              'Content-Type': 'application/json',
               Authorization: `Bearer ${refreshToken}`,
             },
           });
 
-          const { access_token, refresh_token } = response.data;
+          const { access_token, refresh_token } = refreshResponse.data;
           localStorage.setItem('access_token', access_token);
           localStorage.setItem('refresh_token', refresh_token);
 
@@ -78,7 +84,15 @@ api.interceptors.response.use(
 export const authAPI = {
   register: (userData) => api.post('/api/v1/auth/register', userData),
   login: (credentials) => api.post('/api/v1/auth/login', credentials),
-  refresh: () => api.post('/api/v1/auth/refresh'),
+  refresh: () => {
+    const refreshToken = localStorage.getItem('refresh_token');
+    return axios.post(`${BASE_URL}/api/v1/auth/refresh`, {}, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${refreshToken}`,
+      },
+    });
+  },
   // logout requires refresh token; allow passing custom config with headers
   logout: (config) => api.post('/api/v1/auth/logout', {}, config),
   logoutAll: () => api.post('/api/v1/auth/logout-all'),
