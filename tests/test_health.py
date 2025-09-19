@@ -48,12 +48,21 @@ class TestHealthEndpoints:
     def test_create_health_record_missing_fields(self, client, auth_headers):
         """Test creating health record with missing required fields"""
         access_headers = auth_headers['access']
-        
+
         record_data = {
             'systolic': 120
-            # Missing diastolic and heart_rate
+            # Missing diastolic (required), heart_rate is optional
         }
-        
+
+        response = client.post('/api/v1/health', json=record_data, headers=access_headers)
+        assert response.status_code == 400
+
+        # Test missing systolic
+        record_data = {
+            'diastolic': 80
+            # Missing systolic (required)
+        }
+
         response = client.post('/api/v1/health', json=record_data, headers=access_headers)
         assert response.status_code == 400
     
@@ -261,3 +270,172 @@ class TestHealthEndpoints:
         # Second user should not be able to access first user's record
         response = client.get(f'/api/v1/health/{record_id}', headers=user2_headers)
         assert response.status_code == 404  # Or 403, depending on implementation
+
+    def test_blood_pressure_validation_ranges(self, client, auth_headers):
+        """Test blood pressure validation with new ranges (30-250)"""
+        access_headers = auth_headers['access']
+
+        # Test valid boundary values
+        valid_records = [
+            {'systolic': 31, 'diastolic': 30},  # Lower boundary (systolic must be > diastolic)
+            {'systolic': 250, 'diastolic': 249},  # Upper boundary
+            {'systolic': 120, 'diastolic': 80},  # Normal values
+        ]
+
+        for record in valid_records:
+            response = client.post('/api/v1/health', json=record, headers=access_headers)
+            assert response.status_code == 201, f"Valid record should be accepted: {record}"
+
+        # Test invalid values - below range
+        invalid_low_records = [
+            {'systolic': 29, 'diastolic': 80},
+            {'systolic': 120, 'diastolic': 29},
+            {'systolic': 20, 'diastolic': 20},
+        ]
+
+        for record in invalid_low_records:
+            response = client.post('/api/v1/health', json=record, headers=access_headers)
+            assert response.status_code == 400, f"Invalid low record should be rejected: {record}"
+            data = response.get_json()
+            assert 'details' in data
+            assert any('30-250' in detail['message'] for detail in data['details'])
+
+        # Test invalid values - above range
+        invalid_high_records = [
+            {'systolic': 251, 'diastolic': 80},
+            {'systolic': 120, 'diastolic': 251},
+            {'systolic': 300, 'diastolic': 300},
+        ]
+
+        for record in invalid_high_records:
+            response = client.post('/api/v1/health', json=record, headers=access_headers)
+            assert response.status_code == 400, f"Invalid high record should be rejected: {record}"
+            data = response.get_json()
+            assert 'details' in data
+            assert any('30-250' in detail['message'] for detail in data['details'])
+
+    def test_systolic_greater_than_diastolic_validation(self, client, auth_headers):
+        """Test that systolic pressure must be greater than diastolic pressure"""
+        access_headers = auth_headers['access']
+
+        # Test invalid cases where systolic <= diastolic
+        invalid_records = [
+            {'systolic': 80, 'diastolic': 80},  # Equal
+            {'systolic': 70, 'diastolic': 80},  # Systolic lower
+            {'systolic': 100, 'diastolic': 120},  # Systolic much lower
+        ]
+
+        for record in invalid_records:
+            response = client.post('/api/v1/health', json=record, headers=access_headers)
+            assert response.status_code == 400, f"Invalid BP relationship should be rejected: {record}"
+            data = response.get_json()
+            assert 'details' in data
+            assert any('greater than diastolic' in detail['message'] for detail in data['details'])
+
+        # Test valid case where systolic > diastolic
+        valid_record = {'systolic': 120, 'diastolic': 80}
+        response = client.post('/api/v1/health', json=valid_record, headers=access_headers)
+        assert response.status_code == 201
+
+    def test_heart_rate_validation_ranges(self, client, auth_headers):
+        """Test heart rate validation with new ranges (30-150)"""
+        access_headers = auth_headers['access']
+
+        # Test valid heart rate values
+        valid_records = [
+            {'systolic': 120, 'diastolic': 80, 'heart_rate': 30},  # Lower boundary
+            {'systolic': 120, 'diastolic': 80, 'heart_rate': 150},  # Upper boundary
+            {'systolic': 120, 'diastolic': 80, 'heart_rate': 72},  # Normal value
+            {'systolic': 120, 'diastolic': 80},  # No heart rate (optional)
+        ]
+
+        for record in valid_records:
+            response = client.post('/api/v1/health', json=record, headers=access_headers)
+            assert response.status_code == 201, f"Valid record should be accepted: {record}"
+
+        # Test invalid heart rate values
+        invalid_records = [
+            {'systolic': 120, 'diastolic': 80, 'heart_rate': 29},  # Below range
+            {'systolic': 120, 'diastolic': 80, 'heart_rate': 151},  # Above range
+            {'systolic': 120, 'diastolic': 80, 'heart_rate': 200},  # Much above range
+        ]
+
+        for record in invalid_records:
+            response = client.post('/api/v1/health', json=record, headers=access_headers)
+            assert response.status_code == 400, f"Invalid heart rate should be rejected: {record}"
+            data = response.get_json()
+            assert 'details' in data
+            assert any('30-150' in detail['message'] for detail in data['details'])
+
+    def test_heart_rate_optional_validation(self, client, auth_headers):
+        """Test that heart rate field is optional"""
+        access_headers = auth_headers['access']
+
+        # Test various ways to omit heart rate
+        optional_records = [
+            {'systolic': 120, 'diastolic': 80},  # No heart_rate field
+            {'systolic': 120, 'diastolic': 80, 'heart_rate': None},  # Explicit None
+            {'systolic': 120, 'diastolic': 80, 'heart_rate': ''},  # Empty string
+            {'systolic': 120, 'diastolic': 80, 'heart_rate': 0},  # Zero
+        ]
+
+        for record in optional_records:
+            response = client.post('/api/v1/health', json=record, headers=access_headers)
+            assert response.status_code == 201, f"Record without heart rate should be accepted: {record}"
+            data = response.get_json()
+            # Heart rate should be None in response when omitted
+            if 'heart_rate' not in record or record['heart_rate'] in [None, '', 0]:
+                assert data['heart_rate'] is None
+
+    def test_update_validation_with_new_rules(self, client, auth_headers):
+        """Test updating records with new validation rules"""
+        access_headers = auth_headers['access']
+
+        # Create a valid record first
+        record_data = {'systolic': 120, 'diastolic': 80, 'heart_rate': 72}
+        create_response = client.post('/api/v1/health', json=record_data, headers=access_headers)
+        record_id = create_response.get_json()['id']
+
+        # Test invalid updates
+        invalid_updates = [
+            {'systolic': 29},  # Below range
+            {'diastolic': 251},  # Above range
+            {'systolic': 70, 'diastolic': 80},  # Systolic <= diastolic
+            {'heart_rate': 151},  # Heart rate above range
+        ]
+
+        for update_data in invalid_updates:
+            response = client.put(f'/api/v1/health/{record_id}', json=update_data, headers=access_headers)
+            assert response.status_code == 400, f"Invalid update should be rejected: {update_data}"
+            data = response.get_json()
+            assert 'details' in data
+
+        # Test valid updates
+        valid_updates = [
+            {'systolic': 130},  # Valid systolic
+            {'diastolic': 85},  # Valid diastolic
+            {'heart_rate': 75},  # Valid heart rate
+            {'heart_rate': None},  # Remove heart rate
+        ]
+
+        for update_data in valid_updates:
+            response = client.put(f'/api/v1/health/{record_id}', json=update_data, headers=access_headers)
+            assert response.status_code == 200, f"Valid update should be accepted: {update_data}"
+
+    def test_non_numeric_validation(self, client, auth_headers):
+        """Test validation with non-numeric inputs"""
+        access_headers = auth_headers['access']
+
+        # Test non-numeric inputs
+        invalid_records = [
+            {'systolic': 'abc', 'diastolic': 80},
+            {'systolic': 120, 'diastolic': 'xyz'},
+            {'systolic': 120, 'diastolic': 80, 'heart_rate': 'invalid'},
+            {'systolic': 120.5, 'diastolic': 80},  # Decimal should be rejected as non-integer
+        ]
+
+        for record in invalid_records:
+            response = client.post('/api/v1/health', json=record, headers=access_headers)
+            assert response.status_code == 400, f"Non-numeric record should be rejected: {record}"
+            data = response.get_json()
+            assert 'details' in data
