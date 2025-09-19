@@ -79,6 +79,13 @@
   "health.messages.deleteSuccess": "Deleted successfully",
   "health.messages.deleteFail": "Delete failed",
   "health.messages.exportFail": "Export failed",
+  "health.validation.systolicRange": "Systolic pressure must be between 30-250 mmHg",
+  "health.validation.diastolicRange": "Diastolic pressure must be between 30-250 mmHg",
+  "health.validation.heartRateRange": "Heart rate must be between 30-150 bpm",
+  "health.validation.systolicGreaterThanDiastolic": "Systolic pressure must be greater than diastolic pressure",
+  "health.validation.systolicMustBeInteger": "Systolic pressure must be a whole number",
+  "health.validation.diastolicMustBeInteger": "Diastolic pressure must be a whole number",
+  "health.validation.heartRateMustBeInteger": "Heart rate must be a whole number",
 
   "members.title": "Members",
   "members.add": "New Member",
