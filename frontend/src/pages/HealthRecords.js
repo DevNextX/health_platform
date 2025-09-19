@@ -10,7 +10,6 @@ import {
   Modal,
   Form,
   Input,
-  InputNumber,
   DatePicker,
   Tag,
   Space,
@@ -43,6 +42,7 @@ const HealthRecords = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [form] = Form.useForm();
+  const [formErrors, setFormErrors] = useState([]);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -124,11 +124,12 @@ const HealthRecords = () => {
   }, [fetchRecords]);
 
   const handleAdd = () => {
-  setEditingRecord(null);
+    setEditingRecord(null);
     form.resetFields();
     form.setFieldsValue({
       timestamp: dayjs(),
     });
+    setFormErrors([]);
     setModalVisible(true);
   };
 
@@ -142,6 +143,7 @@ const HealthRecords = () => {
       tags: record.tags || [],
       notes: record.note,
     });
+    setFormErrors([]);
     setModalVisible(true);
   };
 
@@ -159,9 +161,9 @@ const HealthRecords = () => {
   const handleSubmit = async (values) => {
     try {
       const recordData = {
-        systolic: values.systolic_pressure,
-        diastolic: values.diastolic_pressure,
-        heart_rate: values.heart_rate,
+        systolic: Number(values.systolic_pressure),
+        diastolic: Number(values.diastolic_pressure),
+        heart_rate: values.heart_rate ? Number(values.heart_rate) : null,
         timestamp: values.timestamp.toISOString(),
         tags: values.tags || [],
         note: values.notes,
@@ -421,6 +423,15 @@ const HealthRecords = () => {
           form={form}
           layout="vertical"
           onFinish={handleSubmit}
+          onValuesChange={() => {
+            setTimeout(() => {
+              form.validateFields({ validateOnly: true })
+                .then(() => setFormErrors([]))
+                .catch((errorInfo) => {
+                  setFormErrors(errorInfo.errorFields || []);
+                });
+            }, 200);
+          }}
         >
           <Form.Item
             name="timestamp"
@@ -442,15 +453,37 @@ const HealthRecords = () => {
                 label={t('health.form.systolic')}
                 rules={[
                   { required: true, message: t('health.form.systolic') },
-                  { type: 'number', min: 50, max: 250, message: '50-250 mmHg' }
+                  {
+                    validator(_, value) {
+                      // Only validate if there's a value (required rule handles empty case)
+                      if (!value || value === '') {
+                        return Promise.resolve();
+                      }
+                      // Convert string to number for validation
+                      const numValue = Number(value);
+                      if (isNaN(numValue)) {
+                        return Promise.reject(new Error(t('health.validation.systolicMustBeInteger')));
+                      }
+                      if (!Number.isInteger(numValue)) {
+                        return Promise.reject(new Error(t('health.validation.systolicMustBeInteger')));
+                      }
+                      if (numValue < 30 || numValue > 250) {
+                        return Promise.reject(new Error(t('health.validation.systolicRange')));
+                      }
+                      const diastolic = form.getFieldValue('diastolic_pressure');
+                      if (diastolic && diastolic !== '' && numValue <= Number(diastolic)) {
+                        return Promise.reject(new Error(t('health.validation.systolicGreaterThanDiastolic')));
+                      }
+                      return Promise.resolve();
+                    },
+                  },
                 ]}
               >
-                <InputNumber
+                <Input
                   data-testid="systolic-pressure"
                   placeholder={t('health.form.systolic')}
                   style={{ width: '100%' }}
-                  min={50}
-                  max={250}
+                  type="number"
                 />
               </Form.Item>
             </Col>
@@ -460,15 +493,37 @@ const HealthRecords = () => {
                 label={t('health.form.diastolic')}
                 rules={[
                   { required: true, message: t('health.form.diastolic') },
-                  { type: 'number', min: 50, max: 250, message: '50-250 mmHg' }
+                  {
+                    validator(_, value) {
+                      // Only validate if there's a value (required rule handles empty case)
+                      if (!value || value === '') {
+                        return Promise.resolve();
+                      }
+                      // Convert string to number for validation
+                      const numValue = Number(value);
+                      if (isNaN(numValue)) {
+                        return Promise.reject(new Error(t('health.validation.diastolicMustBeInteger')));
+                      }
+                      if (!Number.isInteger(numValue)) {
+                        return Promise.reject(new Error(t('health.validation.diastolicMustBeInteger')));
+                      }
+                      if (numValue < 30 || numValue > 250) {
+                        return Promise.reject(new Error(t('health.validation.diastolicRange')));
+                      }
+                      const systolic = form.getFieldValue('systolic_pressure');
+                      if (systolic && systolic !== '' && Number(systolic) <= numValue) {
+                        return Promise.reject(new Error(t('health.validation.systolicGreaterThanDiastolic')));
+                      }
+                      return Promise.resolve();
+                    },
+                  },
                 ]}
               >
-                <InputNumber
+                <Input
                   data-testid="diastolic-pressure"
                   placeholder={t('health.form.diastolic')}
                   style={{ width: '100%' }}
-                  min={50}
-                  max={250}
+                  type="number"
                 />
               </Form.Item>
             </Col>
@@ -478,15 +533,33 @@ const HealthRecords = () => {
             name="heart_rate"
             label={t('health.form.heartRate')}
             rules={[
-              { type: 'number', min: 30, max: 200, message: '30-200 bpm' }
+              {
+                validator(_, value) {
+                  // Heart rate is optional, only validate if there's a value
+                  if (!value || value === '') {
+                    return Promise.resolve();
+                  }
+                  // Convert string to number for validation
+                  const numValue = Number(value);
+                  if (isNaN(numValue)) {
+                    return Promise.reject(new Error(t('health.validation.heartRateMustBeInteger')));
+                  }
+                  if (!Number.isInteger(numValue)) {
+                    return Promise.reject(new Error(t('health.validation.heartRateMustBeInteger')));
+                  }
+                  if (numValue < 30 || numValue > 150) {
+                    return Promise.reject(new Error(t('health.validation.heartRateRange')));
+                  }
+                  return Promise.resolve();
+                },
+              },
             ]}
           >
-            <InputNumber
+            <Input
               data-testid="heart-rate"
               placeholder={t('health.form.heartRate')}
               style={{ width: '100%' }}
-              min={30}
-              max={200}
+              type="number"
             />
           </Form.Item>
 
@@ -510,7 +583,11 @@ const HealthRecords = () => {
 
           <Form.Item>
             <Space>
-              <Button type="primary" htmlType="submit">
+              <Button
+                type="primary"
+                htmlType="submit"
+                disabled={formErrors.length > 0}
+              >
                 {editingRecord ? t('health.form.update') : t('health.form.save')}
               </Button>
               <Button onClick={() => setModalVisible(false)}>
