@@ -442,15 +442,23 @@ const HealthRecords = () => {
                 label={t('health.form.systolic')}
                 rules={[
                   { required: true, message: t('health.form.systolic') },
-                  { type: 'number', min: 50, max: 250, message: '50-250 mmHg' }
+                  { type: 'number', min: 30, max: 250, message: t('health.validation.bpRange') },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      const diastolic = getFieldValue('diastolic_pressure');
+                      if (!value || !diastolic || value > diastolic) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject(new Error(t('health.validation.systolicGreaterThanDiastolic')));
+                    },
+                  }),
                 ]}
               >
                 <InputNumber
                   data-testid="systolic-pressure"
                   placeholder={t('health.form.systolic')}
                   style={{ width: '100%' }}
-                  min={50}
-                  max={250}
+                  parser={(value) => value.replace(/[^\d]/g, '')}
                 />
               </Form.Item>
             </Col>
@@ -460,15 +468,23 @@ const HealthRecords = () => {
                 label={t('health.form.diastolic')}
                 rules={[
                   { required: true, message: t('health.form.diastolic') },
-                  { type: 'number', min: 50, max: 250, message: '50-250 mmHg' }
+                  { type: 'number', min: 30, max: 250, message: t('health.validation.bpRange') },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      const systolic = getFieldValue('systolic_pressure');
+                      if (!value || !systolic || systolic > value) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject(new Error(t('health.validation.systolicGreaterThanDiastolic')));
+                    },
+                  }),
                 ]}
               >
                 <InputNumber
                   data-testid="diastolic-pressure"
                   placeholder={t('health.form.diastolic')}
                   style={{ width: '100%' }}
-                  min={50}
-                  max={250}
+                  parser={(value) => value.replace(/[^\d]/g, '')}
                 />
               </Form.Item>
             </Col>
@@ -478,15 +494,14 @@ const HealthRecords = () => {
             name="heart_rate"
             label={t('health.form.heartRate')}
             rules={[
-              { type: 'number', min: 30, max: 200, message: '30-200 bpm' }
+              { type: 'number', min: 30, max: 150, message: t('health.validation.hrRange') }
             ]}
           >
             <InputNumber
               data-testid="heart-rate"
               placeholder={t('health.form.heartRate')}
               style={{ width: '100%' }}
-              min={30}
-              max={200}
+              parser={(value) => value.replace(/[^\d]/g, '')}
             />
           </Form.Item>
 

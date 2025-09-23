@@ -82,7 +82,7 @@ def login():
 @jwt_required(refresh=True)
 @limiter.limit(lambda: current_app.config.get("RATELIMIT_AUTH", "5 per minute"))
 def refresh():
-    identity = get_jwt_identity()
+    identity = int(get_jwt_identity())  # Convert string back to int
     claims = get_jwt()
     user = user_manager.get_user(identity)
     if not user or claims.get("token_version") != user.token_version:
@@ -100,7 +100,7 @@ def refresh():
 @auth_bp.route("/logout", methods=["POST"])
 @jwt_required(refresh=True)
 def logout():
-    identity = get_jwt_identity()
+    identity = int(get_jwt_identity())  # Convert string back to int
     user = user_manager.get_user(identity)
     if not user:
         return jsonify(error("401", "Invalid token")), 401
@@ -112,7 +112,7 @@ def logout():
 @auth_bp.route("/logout-all", methods=["POST"])
 @jwt_required()
 def logout_all():
-    identity = get_jwt_identity()
+    identity = int(get_jwt_identity())  # Convert string back to int
     user = user_manager.get_user(identity)
     if not user:
         return jsonify(error("401", "Invalid token")), 401

@@ -22,7 +22,7 @@ def register_user_via_user_endpoint():
 @user_bp.route("/<int:user_id>", methods=["GET"])
 @jwt_required()
 def get_user_info(user_id: int):
-    identity = get_jwt_identity()
+    identity = int(get_jwt_identity())  # Convert string back to int
     if identity != user_id:
         return jsonify(error("403", "Forbidden")), 403
     user = user_manager.get_user(user_id)
@@ -45,7 +45,7 @@ def get_user_info(user_id: int):
 @user_bp.route("/<int:user_id>", methods=["PUT"])
 @jwt_required()
 def update_user_info(user_id: int):
-    identity = get_jwt_identity()
+    identity = int(get_jwt_identity())  # Convert string back to int
     if identity != user_id:
         return jsonify(error("403", "Forbidden")), 403
     user = user_manager.get_user(user_id)
