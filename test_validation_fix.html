@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>验证修复测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-case { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .test-case h3 { margin-top: 0; color: #333; }
+        .expected { color: #008000; font-weight: bold; }
+        .pass { background-color: #d4edda; border-color: #c3e6cb; }
+        .fail { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        input { padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 3px; width: 200px; }
+        button { padding: 8px 16px; margin: 5px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>健康记录验证行为修复测试</h1>
+    <p>测试目标：<strong>只有在输入不在范围的时候，才会显示红色错误提示</strong></p>
+
+    <div class="test-case info">
+        <h3>期望行为说明</h3>
+        <ul>
+            <li><strong>✅ 正常值 (30-250 血压, 30-150 心率):</strong> 不显示错误提示</li>
+            <li><strong>❌ 越界值 (< 30 或 > 250 血压, < 30 或 > 150 心率):</strong> 显示红色错误提示</li>
+            <li><strong>⚪ 空值:</strong> 血压必填显示错误，心率可选不显示错误</li>
+        </ul>
+    </div>
+
+    <div class="test-case">
+        <h3>测试用例 1: 正常范围内的值</h3>
+        <p><span class="expected">期望：不应该显示任何红色错误提示</span></p>
+        <div>
+            <label>收缩压 (120):</label>
+            <input type="number" id="systolic1" value="120" onchange="testCase1()" />
+            <div id="systolic1-error" style="color: red; font-size: 12px;"></div>
+        </div>
+        <div>
+            <label>舒张压 (80):</label>
+            <input type="number" id="diastolic1" value="80" onchange="testCase1()" />
+            <div id="diastolic1-error" style="color: red; font-size: 12px;"></div>
+        </div>
+        <div>
+            <label>心率 (72):</label>
+            <input type="number" id="heartrate1" value="72" onchange="testCase1()" />
+            <div id="heartrate1-error" style="color: red; font-size: 12px;"></div>
+        </div>
+        <div id="result1" class="result"></div>
+    </div>
+
+    <div class="test-case">
+        <h3>测试用例 2: 越界值</h3>
+        <p><span class="expected">期望：应该显示红色错误提示</span></p>
+        <div>
+            <label>收缩压 (300):</label>
+            <input type="number" id="systolic2" value="300" onchange="testCase2()" />
+            <div id="systolic2-error" style="color: red; font-size: 12px;"></div>
+        </div>
+        <div>
+            <label>舒张压 (20):</label>
+            <input type="number" id="diastolic2" value="20" onchange="testCase2()" />
+            <div id="diastolic2-error" style="color: red; font-size: 12px;"></div>
+        </div>
+        <div>
+            <label>心率 (200):</label>
+            <input type="number" id="heartrate2" value="200" onchange="testCase2()" />
+            <div id="heartrate2-error" style="color: red; font-size: 12px;"></div>
+        </div>
+        <div id="result2" class="result"></div>
+    </div>
+
+    <div class="test-case">
+        <h3>测试用例 3: 边界值</h3>
+        <p><span class="expected">期望：边界值应该被接受，不显示错误</span></p>
+        <div>
+            <label>收缩压 (30):</label>
+            <input type="number" id="systolic3" value="30" onchange="testCase3()" />
+            <div id="systolic3-error" style="color: red; font-size: 12px;"></div>
+        </div>
+        <div>
+            <label>舒张压 (250):</label>
+            <input type="number" id="diastolic3" value="250" onchange="testCase3()" />
+            <div id="diastolic3-error" style="color: red; font-size: 12px;"></div>
+        </div>
+        <div>
+            <label>心率 (150):</label>
+            <input type="number" id="heartrate3" value="150" onchange="testCase3()" />
+            <div id="heartrate3-error" style="color: red; font-size: 12px;"></div>
+        </div>
+        <div id="result3" class="result"></div>
+    </div>
+
+    <script>
+        function validateValue(value, min, max, fieldName) {
+            if (value === '' || value === null || value === undefined) {
+                return null; // Let required validation handle empty values
+            }
+
+            const numValue = Number(value);
+            if (isNaN(numValue) || !Number.isInteger(numValue)) {
+                return `${fieldName}必须是整数`;
+            }
+
+            if (numValue < min || numValue > max) {
+                return `${fieldName}必须在 ${min}-${max} 之间`;
+            }
+
+            return null; // No error
+        }
+
+        function testCase1() {
+            const systolic = document.getElementById('systolic1').value;
+            const diastolic = document.getElementById('diastolic1').value;
+            const heartrate = document.getElementById('heartrate1').value;
+
+            const systolicError = validateValue(systolic, 30, 250, '收缩压');
+            const diastolicError = validateValue(diastolic, 30, 250, '舒张压');
+            const heartrateError = validateValue(heartrate, 30, 150, '心率');
+
+            document.getElementById('systolic1-error').textContent = systolicError || '';
+            document.getElementById('diastolic1-error').textContent = diastolicError || '';
+            document.getElementById('heartrate1-error').textContent = heartrateError || '';
+
+            const hasErrors = systolicError || diastolicError || heartrateError;
+            const result = document.getElementById('result1');
+
+            if (!hasErrors) {
+                result.innerHTML = '<div class="pass">✅ 通过: 正常值不显示错误提示</div>';
+                result.className = 'result pass';
+            } else {
+                result.innerHTML = '<div class="fail">❌ 失败: 正常值不应该显示错误提示</div>';
+                result.className = 'result fail';
+            }
+        }
+
+        function testCase2() {
+            const systolic = document.getElementById('systolic2').value;
+            const diastolic = document.getElementById('diastolic2').value;
+            const heartrate = document.getElementById('heartrate2').value;
+
+            const systolicError = validateValue(systolic, 30, 250, '收缩压');
+            const diastolicError = validateValue(diastolic, 30, 250, '舒张压');
+            const heartrateError = validateValue(heartrate, 30, 150, '心率');
+
+            document.getElementById('systolic2-error').textContent = systolicError || '';
+            document.getElementById('diastolic2-error').textContent = diastolicError || '';
+            document.getElementById('heartrate2-error').textContent = heartrateError || '';
+
+            const hasErrors = systolicError || diastolicError || heartrateError;
+            const result = document.getElementById('result2');
+
+            if (hasErrors) {
+                result.innerHTML = '<div class="pass">✅ 通过: 越界值正确显示错误提示</div>';
+                result.className = 'result pass';
+            } else {
+                result.innerHTML = '<div class="fail">❌ 失败: 越界值应该显示错误提示</div>';
+                result.className = 'result fail';
+            }
+        }
+
+        function testCase3() {
+            const systolic = document.getElementById('systolic3').value;
+            const diastolic = document.getElementById('diastolic3').value;
+            const heartrate = document.getElementById('heartrate3').value;
+
+            const systolicError = validateValue(systolic, 30, 250, '收缩压');
+            const diastolicError = validateValue(diastolic, 30, 250, '舒张压');
+            const heartrateError = validateValue(heartrate, 30, 150, '心率');
+
+            document.getElementById('systolic3-error').textContent = systolicError || '';
+            document.getElementById('diastolic3-error').textContent = diastolicError || '';
+            document.getElementById('heartrate3-error').textContent = heartrateError || '';
+
+            const hasErrors = systolicError || diastolicError || heartrateError;
+            const result = document.getElementById('result3');
+
+            if (!hasErrors) {
+                result.innerHTML = '<div class="pass">✅ 通过: 边界值被正确接受</div>';
+                result.className = 'result pass';
+            } else {
+                result.innerHTML = '<div class="fail">❌ 失败: 边界值应该被接受</div>';
+                result.className = 'result fail';
+            }
+        }
+
+        // 初始化测试
+        window.onload = function() {
+            testCase1();
+            testCase2();
+            testCase3();
+        };
+    </script>
+
+    <div style="margin-top: 30px; padding: 15px; background-color: #e7f3ff; border-radius: 5px;">
+        <h3>使用说明</h3>
+        <p>1. 页面加载后会自动运行测试</p>
+        <p>2. 您也可以修改输入框中的值来测试不同情况</p>
+        <p>3. 观察每个输入框下方是否正确显示或隐藏红色错误提示</p>
+        <p><strong>注意:</strong> 这个测试页面模拟了修复后的验证逻辑。在实际的React应用中，您应该看到相同的行为。</p>
+    </div>
+</body>
+</html>

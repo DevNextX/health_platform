@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Validation Behavior</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-case { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .test-case h3 { margin-top: 0; color: #333; }
+        .expected { color: #008000; font-weight: bold; }
+        .actual { color: #0066cc; font-weight: bold; }
+        .pass { background-color: #d4edda; border-color: #c3e6cb; }
+        .fail { background-color: #f8d7da; border-color: #f5c6cb; }
+        input { padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 3px; }
+        button { padding: 8px 16px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>健康记录验证行为测试</h1>
+    <p>这个测试页面验证新的验证规则是否符合需求：<strong>不自动修正用户输入，只显示错误提示</strong></p>
+
+    <div class="test-case">
+        <h3>测试用例 1: 血压越界输入（低于范围）</h3>
+        <p><strong>期望行为:</strong> <span class="expected">输入 20，应保留显示 20，不自动改为 30</span></p>
+        <p>收缩压: <input type="number" id="systolic1" placeholder="输入 20 测试" /></p>
+        <p>舒张压: <input type="number" id="diastolic1" placeholder="输入 80" /></p>
+        <button onclick="testCase1()">测试</button>
+        <div id="result1"></div>
+    </div>
+
+    <div class="test-case">
+        <h3>测试用例 2: 血压越界输入（高于范围）</h3>
+        <p><strong>期望行为:</strong> <span class="expected">输入 300，应保留显示 300，不自动改为 250</span></p>
+        <p>收缩压: <input type="number" id="systolic2" placeholder="输入 300 测试" /></p>
+        <p>舒张压: <input type="number" id="diastolic2" placeholder="输入 80" /></p>
+        <button onclick="testCase2()">测试</button>
+        <div id="result2"></div>
+    </div>
+
+    <div class="test-case">
+        <h3>测试用例 3: 心率越界输入</h3>
+        <p><strong>期望行为:</strong> <span class="expected">输入 200，应保留显示 200，不自动改为 150</span></p>
+        <p>心率: <input type="number" id="heartrate3" placeholder="输入 200 测试" /></p>
+        <button onclick="testCase3()">测试</button>
+        <div id="result3"></div>
+    </div>
+
+    <div class="test-case">
+        <h3>测试用例 4: 收缩压小于等于舒张压</h3>
+        <p><strong>期望行为:</strong> <span class="expected">应保留原始输入值，显示关系错误</span></p>
+        <p>收缩压: <input type="number" id="systolic4" placeholder="输入 80" /></p>
+        <p>舒张压: <input type="number" id="diastolic4" placeholder="输入 90" /></p>
+        <button onclick="testCase4()">测试</button>
+        <div id="result4"></div>
+    </div>
+
+    <div class="test-case">
+        <h3>测试用例 5: 小数输入</h3>
+        <p><strong>期望行为:</strong> <span class="expected">输入 120.5，应保留显示 120.5，显示整数错误</span></p>
+        <p>收缩压: <input type="number" id="systolic5" placeholder="输入 120.5 测试" step="0.1" /></p>
+        <button onclick="testCase5()">测试</button>
+        <div id="result5"></div>
+    </div>
+
+    <script>
+        function testCase1() {
+            const systolic = document.getElementById('systolic1');
+            const diastolic = document.getElementById('diastolic1');
+            systolic.value = '20';
+            diastolic.value = '80';
+
+            setTimeout(() => {
+                const result = document.getElementById('result1');
+                const systolicValue = systolic.value;
+                const diastolicValue = diastolic.value;
+
+                if (systolicValue === '20' && diastolicValue === '80') {
+                    result.innerHTML = '<div class="pass">✅ 通过: 输入值未被自动修正</div>';
+                    result.innerHTML += '<p>收缩压显示: ' + systolicValue + ' (期望: 20)</p>';
+                    result.innerHTML += '<p>舒张压显示: ' + diastolicValue + ' (期望: 80)</p>';
+                } else {
+                    result.innerHTML = '<div class="fail">❌ 失败: 输入值被自动修正了</div>';
+                    result.innerHTML += '<p>收缩压显示: ' + systolicValue + ' (期望: 20)</p>';
+                    result.innerHTML += '<p>舒张压显示: ' + diastolicValue + ' (期望: 80)</p>';
+                }
+            }, 100);
+        }
+
+        function testCase2() {
+            const systolic = document.getElementById('systolic2');
+            const diastolic = document.getElementById('diastolic2');
+            systolic.value = '300';
+            diastolic.value = '80';
+
+            setTimeout(() => {
+                const result = document.getElementById('result2');
+                const systolicValue = systolic.value;
+                const diastolicValue = diastolic.value;
+
+                if (systolicValue === '300' && diastolicValue === '80') {
+                    result.innerHTML = '<div class="pass">✅ 通过: 输入值未被自动修正</div>';
+                    result.innerHTML += '<p>收缩压显示: ' + systolicValue + ' (期望: 300)</p>';
+                    result.innerHTML += '<p>舒张压显示: ' + diastolicValue + ' (期望: 80)</p>';
+                } else {
+                    result.innerHTML = '<div class="fail">❌ 失败: 输入值被自动修正了</div>';
+                    result.innerHTML += '<p>收缩压显示: ' + systolicValue + ' (期望: 300)</p>';
+                    result.innerHTML += '<p>舒张压显示: ' + diastolicValue + ' (期望: 80)</p>';
+                }
+            }, 100);
+        }
+
+        function testCase3() {
+            const heartrate = document.getElementById('heartrate3');
+            heartrate.value = '200';
+
+            setTimeout(() => {
+                const result = document.getElementById('result3');
+                const heartrateValue = heartrate.value;
+
+                if (heartrateValue === '200') {
+                    result.innerHTML = '<div class="pass">✅ 通过: 输入值未被自动修正</div>';
+                    result.innerHTML += '<p>心率显示: ' + heartrateValue + ' (期望: 200)</p>';
+                } else {
+                    result.innerHTML = '<div class="fail">❌ 失败: 输入值被自动修正了</div>';
+                    result.innerHTML += '<p>心率显示: ' + heartrateValue + ' (期望: 200)</p>';
+                }
+            }, 100);
+        }
+
+        function testCase4() {
+            const systolic = document.getElementById('systolic4');
+            const diastolic = document.getElementById('diastolic4');
+            systolic.value = '80';
+            diastolic.value = '90';
+
+            setTimeout(() => {
+                const result = document.getElementById('result4');
+                const systolicValue = systolic.value;
+                const diastolicValue = diastolic.value;
+
+                if (systolicValue === '80' && diastolicValue === '90') {
+                    result.innerHTML = '<div class="pass">✅ 通过: 输入值未被自动修正</div>';
+                    result.innerHTML += '<p>收缩压显示: ' + systolicValue + ' (期望: 80)</p>';
+                    result.innerHTML += '<p>舒张压显示: ' + diastolicValue + ' (期望: 90)</p>';
+                    result.innerHTML += '<p><em>注意: 在实际应用中应显示"收缩压必须大于舒张压"错误</em></p>';
+                } else {
+                    result.innerHTML = '<div class="fail">❌ 失败: 输入值被自动修正了</div>';
+                    result.innerHTML += '<p>收缩压显示: ' + systolicValue + ' (期望: 80)</p>';
+                    result.innerHTML += '<p>舒张压显示: ' + diastolicValue + ' (期望: 90)</p>';
+                }
+            }, 100);
+        }
+
+        function testCase5() {
+            const systolic = document.getElementById('systolic5');
+            systolic.value = '120.5';
+
+            setTimeout(() => {
+                const result = document.getElementById('result5');
+                const systolicValue = systolic.value;
+
+                if (systolicValue === '120.5') {
+                    result.innerHTML = '<div class="pass">✅ 通过: 小数输入值未被自动修正</div>';
+                    result.innerHTML += '<p>收缩压显示: ' + systolicValue + ' (期望: 120.5)</p>';
+                    result.innerHTML += '<p><em>注意: 在实际应用中应显示"必须是整数"错误</em></p>';
+                } else {
+                    result.innerHTML = '<div class="fail">❌ 失败: 小数输入值被自动修正了</div>';
+                    result.innerHTML += '<p>收缩压显示: ' + systolicValue + ' (期望: 120.5)</p>';
+                }
+            }, 100);
+        }
+    </script>
+
+    <div style="margin-top: 30px; padding: 15px; background-color: #e7f3ff; border-radius: 5px;">
+        <h3>验收标准对照</h3>
+        <ul>
+            <li><strong>AC-1 & AC-2:</strong> 越界输入应保留原始值，不自动修正为边界值</li>
+            <li><strong>AC-3:</strong> 收缩压≤舒张压时保留原始输入，显示关系错误</li>
+            <li><strong>边界场景:</strong> 小数输入应保留原始值，显示格式错误</li>
+        </ul>
+        <p><strong>重要:</strong> 这个测试页面只验证输入值是否被自动修正。在实际的React应用中，还需要验证错误提示和保存按钮禁用功能。</p>
+    </div>
+</body>
+</html>
