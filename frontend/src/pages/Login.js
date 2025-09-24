@@ -7,8 +7,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Form, Input, Button, Card, Typography, message, Space } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { authAPI, metaAPI } from '../services/api';
-import { setTokens } from '../utils/auth';
+import {
+  setTokens,
+  getUserIdFromToken,
+  MEMBER_SELECTION_KEY,
+  MEMBER_SELECTION_OWNER_KEY,
+} from '../utils/auth';
 import { useTranslation } from 'react-i18next';
+import { useMember } from '../context/MemberContext';
 
 const { Title, Text } = Typography;
 
@@ -17,6 +23,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [version, setVersion] = useState('');
   const { t } = useTranslation();
+  const { setSelectedMemberId } = useMember();
 
   const onFinish = async (values) => {
     setLoading(true);
@@ -25,6 +32,23 @@ const Login = () => {
       const { access_token, refresh_token, must_change_password } = response.data;
       
       setTokens(access_token, refresh_token);
+      const userId = getUserIdFromToken();
+      const previousOwner = localStorage.getItem(MEMBER_SELECTION_OWNER_KEY);
+      if (userId) {
+        if (previousOwner !== String(userId)) {
+          localStorage.removeItem(MEMBER_SELECTION_KEY);
+          setSelectedMemberId(undefined);
+        } else {
+          const stored = localStorage.getItem(MEMBER_SELECTION_KEY);
+          const parsed = stored !== null ? Number(stored) : undefined;
+          setSelectedMemberId(Number.isFinite(parsed) ? parsed : undefined);
+        }
+        localStorage.setItem(MEMBER_SELECTION_OWNER_KEY, String(userId));
+      } else {
+        localStorage.removeItem(MEMBER_SELECTION_KEY);
+        localStorage.removeItem(MEMBER_SELECTION_OWNER_KEY);
+        setSelectedMemberId(undefined);
+      }
       if (must_change_password) {
         message.info(t('messages.login.mustChange'));
         navigate('/settings?first=1');
@@ -34,7 +58,7 @@ const Login = () => {
       }
     } catch (error) {
       console.error('Login error:', error);
-  const errorMessage = error.response?.data?.message || t('messages.login.fail');
+      const errorMessage = error.response?.data?.message || t('messages.login.fail');
       message.error(errorMessage);
     } finally {
       setLoading(false);

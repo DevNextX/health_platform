@@ -11,6 +11,9 @@ export const getRefreshToken = () => {
   return localStorage.getItem('refresh_token');
 };
 
+export const MEMBER_SELECTION_KEY = 'selected_member_id';
+export const MEMBER_SELECTION_OWNER_KEY = 'selected_member_owner';
+
 export const setTokens = (accessToken, refreshToken) => {
   localStorage.setItem('access_token', accessToken);
   localStorage.setItem('refresh_token', refreshToken);
@@ -19,6 +22,8 @@ export const setTokens = (accessToken, refreshToken) => {
 export const clearTokens = () => {
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
+  localStorage.removeItem(MEMBER_SELECTION_KEY);
+  localStorage.removeItem(MEMBER_SELECTION_OWNER_KEY);
 };
 
 export const isAuthenticated = () => {
