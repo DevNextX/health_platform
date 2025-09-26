@@ -183,7 +183,7 @@ const HealthChart = ({ records = [] }) => {
         symbolSize: 6,
         emphasis: {
           itemStyle: {
-            borderColor: '#ff4d4f',
+            borderColor: SYSTOLIC_COLOR,
             borderWidth: 2,
           },
         },
@@ -203,7 +203,7 @@ const HealthChart = ({ records = [] }) => {
         symbolSize: 6,
         emphasis: {
           itemStyle: {
-            borderColor: '#52c41a',
+            borderColor: DIASTOLIC_COLOR,
             borderWidth: 2,
           },
         },
@@ -223,7 +223,7 @@ const HealthChart = ({ records = [] }) => {
         symbolSize: 6,
         emphasis: {
           itemStyle: {
-            borderColor: '#1890ff',
+            borderColor: HEART_RATE_COLOR,
             borderWidth: 2,
           },
         },
