@@ -1,35 +1,31 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- Backend (`src/`): Flask app entry `src/app.py`, configs in `src/config.py`, blueprints under `src/service/`, data models in `src/models.py`.
-- Frontend (`frontend/`): React app (CRA). Dev proxy targets `http://localhost:5000`.
-- Tests (`tests/`): Pytest suites (unit/integration); E2E under `tests/e2e/` (Playwright).
-- Tooling & ops: `tools/`, `scripts/`, `deploy/`, and docs in `docs/`.
+- Backend source under `src/`; Flask entrypoint `src/app.py`, configuration helpers in `src/config.py`, route blueprints in `src/service/`, and data models in `src/models.py`.
+- Frontend React app lives in `frontend/`; CRA tooling is in place and the dev proxy targets `http://localhost:5000`.
+- Tests reside in `tests/`, with pytest suites at the root and Playwright E2E specs in `tests/e2e/`. Utility scripts live in `tools/` and `scripts/`, and deployment assets in `deploy/`.
 
 ## Build, Test, and Development Commands
-- Backend run (simple): `make run` (runs `python -m src.app`).
-- Backend (Flask dev server): `FLASK_APP=src.app python -m flask run --host=0.0.0.0 --port=5000`.
-- Smoke check: `make smoke` (basic API probe).
-- Backend tests: `python -m pytest tests/ -v` (use project venv; see `requirements.txt`).
-- Frontend dev: `cd frontend && npm install && npm start`.
-- Frontend build/test: `npm run build`, `npm test` (from `frontend/`).
+- `make run` starts the backend via `python -m src.app` with default settings.
+- `FLASK_APP=src.app python -m flask run --host=0.0.0.0 --port=5000` launches the hot-reload dev server.
+- `python -m pytest tests/ -v` runs all backend tests; focus on individual cases with `python -m pytest path::TestClass::test_case -q`.
+- From `frontend/`, run `npm install` once, then `npm start` for local development, `npm test` for unit tests, and `npm run build` for production bundles.
+- Execute `make smoke` to perform a quick API health probe before merging.
 
 ## Coding Style & Naming Conventions
-- Python: follow PEP 8, 4‑space indents, type hints where practical. Modules `snake_case.py`; classes `PascalCase`; functions/vars `snake_case`.
-- Flask: add routes via blueprints in `src/service/`; avoid placing business logic in route handlers—use managers/services.
-- JavaScript/React: functional components, components `PascalCase.jsx/tsx`, hooks `useX`, other files `camelCase.js`. ESLint config comes from CRA.
+- Python code follows PEP 8 with 4-space indents; modules use `snake_case.py`, classes `PascalCase`, and functions/variables `snake_case`.
+- Flask routes should stay thin; move business logic into services or managers under `src/service/`.
+- React components are functional; name files `PascalCase.jsx/tsx`, hooks `useName.js`, and other utilities `camelCase.js`. CRA's ESLint/Prettier defaults apply.
 
 ## Testing Guidelines
-- Pytest: tests live in `tests/` named `test_*.py`; use fixtures from `tests/conftest.py`.
-- Run specific tests: `python -m pytest tests/test_auth.py::TestAuthEndpoints::test_health_check -q`.
-- E2E: `cd tests/e2e && npm install && npx playwright install --with-deps && npm run test` (ensure backend and frontend are running).
-- CI examples include coverage; local coverage optional.
+- Pytest discovers files named `test_*.py`. Reuse fixtures from `tests/conftest.py` to share setup.
+- E2E tests require both backend and frontend running; use `cd tests/e2e && npm install && npx playwright install --with-deps && npm run test`.
+- Target high-risk areas with focused tests and update or add cases whenever behavior changes.
 
 ## Commit & Pull Request Guidelines
-- Use Conventional Commits: `feat: ...`, `fix: ...`, `docs: ...`, etc. (matches current history).
-- PRs: include a clear summary, related issue links, test evidence (logs/screenshots), and steps to reproduce/verify.
-- Keep changes focused; update docs/tests alongside code.
+- Follow Conventional Commits (e.g., `feat: add appointment scheduler`, `fix: handle empty JWT payload`).
+- PRs should summarize changes, reference related issues, and attach test evidence (logs or screenshots). Include reproduction steps or manual checklists when relevant.
 
 ## Security & Configuration Tips
-- Do not commit secrets. Use `.env` locally (see `.env.example`) and GitHub Secrets in CI.
-- Key envs: `SQLALCHEMY_DATABASE_URI`, `JWT_SECRET_KEY`, `CORS_ORIGINS`. SQLite is auto‑created in dev; MySQL TLS optional via env.
+- Never commit secrets; load env vars from `.env` (see `.env.example`). Key variables include `SQLALCHEMY_DATABASE_URI`, `JWT_SECRET_KEY`, and `CORS_ORIGINS`.
+- SQLite is provisioned automatically in development. For production, configure MySQL credentials and optional TLS via environment variables.
