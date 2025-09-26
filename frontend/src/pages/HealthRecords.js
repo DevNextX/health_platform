@@ -32,6 +32,7 @@ import { useMember } from '../context/MemberContext';
 import TagSelector from '../components/TagSelector';
 import { tagValueToLabel } from '../utils/tagI18n';
 import { useTranslation } from 'react-i18next';
+import { formatServerTime, parseServerTime, toServerISOString } from '../utils/date';
 
 const { TextArea } = Input;
 const { Title } = Typography;
@@ -71,8 +72,8 @@ const HealthRecords = () => {
       }
 
       if (filters.dateRange) {
-        params.date_from = filters.dateRange[0].startOf('day').toDate().toISOString();
-        params.date_to = filters.dateRange[1].endOf('day').toDate().toISOString();
+  params.date_from = toServerISOString(filters.dateRange[0].startOf('day'));
+  params.date_to = toServerISOString(filters.dateRange[1].endOf('day'));
       }
 
   if (selectedMemberId !== undefined && selectedMemberId !== null) {
@@ -127,7 +128,7 @@ const HealthRecords = () => {
   const handleAdd = () => {
     setEditingRecord(null);
     form.resetFields();
-    form.setFieldsValue({ timestamp: dayjs() });
+  form.setFieldsValue({ timestamp: dayjs() });
     setFormErrors([]);
     setModalVisible(true);
   };
@@ -138,7 +139,7 @@ const HealthRecords = () => {
       systolic_pressure: record.systolic,
       diastolic_pressure: record.diastolic,
       heart_rate: record.heart_rate,
-      timestamp: dayjs(record.timestamp),
+  timestamp: parseServerTime(record.timestamp),
       tags: record.tags || [],
       notes: record.note,
     });
@@ -163,7 +164,7 @@ const HealthRecords = () => {
         systolic: values.systolic_pressure,
         diastolic: values.diastolic_pressure,
         heart_rate: values.heart_rate,
-        timestamp: values.timestamp.toISOString(),
+  timestamp: toServerISOString(values.timestamp),
         tags: values.tags || [],
         note: values.notes,
       };
@@ -215,7 +216,7 @@ const HealthRecords = () => {
       title: t('health.columns.time'),
       dataIndex: 'timestamp',
       key: 'timestamp',
-      render: (timestamp) => dayjs(timestamp).format('YYYY-MM-DD HH:mm'),
+  render: (timestamp) => formatServerTime(timestamp, 'YYYY-MM-DD HH:mm'),
       sorter: true,
     },
     {
@@ -289,8 +290,8 @@ const HealthRecords = () => {
       const params = {};
       if (filters.tags?.length) params.tags = filters.tags.join(',');
       if (filters.dateRange) {
-        params.date_from = filters.dateRange[0].startOf('day').toDate().toISOString();
-        params.date_to = filters.dateRange[1].endOf('day').toDate().toISOString();
+        params.date_from = toServerISOString(filters.dateRange[0].startOf('day'));
+        params.date_to = toServerISOString(filters.dateRange[1].endOf('day'));
       }
       if (selectedMemberId !== undefined && selectedMemberId !== null) {
         params.subject_member_id = selectedMemberId;

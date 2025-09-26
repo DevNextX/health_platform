@@ -12,7 +12,7 @@ import csv
 from ..manager.health_manager import HealthManager
 from ..manager.member_manager import MemberManager
 from ..models import RecordSubject, Member
-from ..utils import get_pagination_params, make_pagination, error
+from ..utils import get_pagination_params, make_pagination, error, ensure_naive_utc, serialize_datetime
 
 health_bp = Blueprint("health", __name__)
 manager = HealthManager()
@@ -92,12 +92,12 @@ def create_record():
         "systolic": rec.systolic,
         "diastolic": rec.diastolic,
         "heart_rate": rec.heart_rate,
-    # Normalize UTC offset to trailing 'Z' for clients
-    "timestamp": rec.timestamp.isoformat().replace("+00:00", "Z"),
+        # Normalize UTC offset to trailing 'Z' for clients
+        "timestamp": serialize_datetime(rec.timestamp),
         "tags": tags,
         "note": rec.note,
-    "created_at": rec.created_at.isoformat().replace("+00:00", "Z"),
-    "subject_member_id": subject_member_id,
+        "created_at": serialize_datetime(rec.created_at),
+        "subject_member_id": subject_member_id,
     }), 201
 
 
@@ -121,11 +121,15 @@ def list_records():
             df = datetime.fromisoformat(date_from.replace("Z", "+00:00"))
         except ValueError:
             return jsonify(error("400", "Invalid date_from")), 400
+    if df:
+        df = ensure_naive_utc(df)
     if date_to:
         try:
             dt = datetime.fromisoformat(date_to.replace("Z", "+00:00"))
         except ValueError:
             return jsonify(error("400", "Invalid date_to")), 400
+    if dt:
+        dt = ensure_naive_utc(dt)
 
     # Filter by member if provided
     subject_member_id = request.args.get("subject_member_id")
@@ -189,7 +193,7 @@ def list_records():
         "systolic": r.systolic,
         "diastolic": r.diastolic,
         "heart_rate": r.heart_rate,
-    "timestamp": r.timestamp.isoformat().replace("+00:00", "Z"),
+        "timestamp": serialize_datetime(r.timestamp),
         "tags": json.loads(r.tags) if r.tags else [],
         "note": r.note,
         **({"subject_member_id": subject_member_id} if include_subject else {}),
@@ -217,11 +221,15 @@ def export_csv():
             df = datetime.fromisoformat(date_from.replace("Z", "+00:00"))
         except ValueError:
             return jsonify(error("400", "Invalid date_from")), 400
+    if df:
+        df = ensure_naive_utc(df)
     if date_to:
         try:
             dt = datetime.fromisoformat(date_to.replace("Z", "+00:00"))
         except ValueError:
             return jsonify(error("400", "Invalid date_to")), 400
+    if dt:
+        dt = ensure_naive_utc(dt)
 
     subject_member_id = request.args.get("subject_member_id")
     self_member = member_mgr.get_or_create_self_member(user_id)
@@ -295,7 +303,7 @@ def export_csv():
         writer.writerow([
             r.id,
             name_map.get(r.id, (selected_member.full_name if selected_member else "")),
-            r.timestamp.isoformat().replace("+00:00", "Z"),
+            serialize_datetime(r.timestamp),
             r.systolic,
             r.diastolic,
             r.heart_rate if r.heart_rate is not None else "",
@@ -357,10 +365,10 @@ def get_record(rec_id: int):
         "systolic": rec.systolic,
         "diastolic": rec.diastolic,
         "heart_rate": rec.heart_rate,
-    "timestamp": rec.timestamp.isoformat().replace("+00:00", "Z"),
+        "timestamp": serialize_datetime(rec.timestamp),
         "tags": json.loads(rec.tags) if rec.tags else [],
         "note": rec.note,
-    "created_at": rec.created_at.isoformat().replace("+00:00", "Z"),
+        "created_at": serialize_datetime(rec.created_at),
     }), 200
 
 
@@ -419,7 +427,7 @@ def update_record(rec_id: int):
         "tags": json.loads(rec.tags) if rec.tags else [],
         "note": rec.note,
         # Timezone-aware UTC now, serialized with trailing 'Z'
-        "updated_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        "updated_at": serialize_datetime(datetime.now(UTC)),
     }), 200
 
 

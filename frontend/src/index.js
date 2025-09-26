@@ -4,8 +4,14 @@
  */
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import './index.css';
 import App from './App';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

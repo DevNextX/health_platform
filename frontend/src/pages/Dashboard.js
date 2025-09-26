@@ -5,10 +5,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, Row, Col, Statistic, Typography, message, Spin } from 'antd';
 import { HeartOutlined, FileTextOutlined, CalendarOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import { healthAPI } from '../services/api';
 import HealthChart from '../components/HealthChart';
 import { useMember } from '../context/MemberContext';
 import { useTranslation } from 'react-i18next';
+import { parseServerTime } from '../utils/date';
 
 const { Title } = Typography;
 
@@ -67,12 +69,12 @@ const Dashboard = () => {
     }
 
     // Get current week's records
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    
-    const thisWeekRecords = records.filter(record => 
-      new Date(record.timestamp) >= oneWeekAgo
-    );
+    const oneWeekAgo = dayjs().subtract(7, 'day');
+
+    const thisWeekRecords = records.filter(record => {
+      const ts = parseServerTime(record.timestamp);
+      return ts.isValid() && ts.isAfter(oneWeekAgo);
+    });
 
     // Calculate averages (coerce values to numbers and validate)
     const getNum = (v) => {

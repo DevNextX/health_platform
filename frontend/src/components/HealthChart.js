@@ -16,9 +16,17 @@ import { CanvasRenderer } from 'echarts/renderers';
 import { Empty, Select, Space, Button } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { parseServerTime } from '../utils/date';
+import {
+  buildHealthChartSeries,
+  SYSTOLIC_COLOR,
+  DIASTOLIC_COLOR,
+  HEART_RATE_COLOR,
+} from '../utils/healthChart';
 import { useTranslation } from 'react-i18next';
 
 const { Option } = Select;
+
 
 // Register ECharts components
 echarts.use([
@@ -42,26 +50,29 @@ const HealthChart = ({ records = [] }) => {
     }
 
     let filtered = [...records];
-    const now = dayjs();
+    let threshold = null;
 
-    switch (timeRange) {
-      case 'week':
-        filtered = records.filter(record => 
-          dayjs(record.timestamp).isAfter(now.subtract(7, 'day'))
-        );
-        break;
-      case 'month':
-        filtered = records.filter(record => 
-          dayjs(record.timestamp).isAfter(now.subtract(30, 'day'))
-        );
-        break;
-      default:
-        // 'all' - use all records
-        break;
+    if (timeRange === 'week') {
+      threshold = dayjs().subtract(7, 'day');
+    } else if (timeRange === 'month') {
+      threshold = dayjs().subtract(30, 'day');
+    }
+
+    if (threshold) {
+      filtered = records.filter(record => {
+        const ts = parseServerTime(record.timestamp);
+        return ts.isValid() && ts.isAfter(threshold);
+      });
     }
 
     // Sort by timestamp
-    filtered.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    filtered.sort((a, b) => {
+      const tsA = parseServerTime(a.timestamp);
+      const tsB = parseServerTime(b.timestamp);
+      const aValue = tsA.isValid() ? tsA.valueOf() : 0;
+      const bValue = tsB.isValid() ? tsB.valueOf() : 0;
+      return aValue - bValue;
+    });
     setFilteredRecords(filtered);
   }, [records, timeRange]);
 
@@ -95,18 +106,14 @@ const HealthChart = ({ records = [] }) => {
   }
 
   // Prepare data for ECharts
-  const timeAxis = filteredRecords.map(record => 
-    dayjs(record.timestamp).format('MM-DD HH:mm')
-  );
-  
-  // Backend fields are `systolic` and `diastolic`; coerce to numbers, use nulls for missing values
-  const toNumOrNull = (v) => {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : null;
-  };
-  const systolicData = filteredRecords.map(record => toNumOrNull(record.systolic));
-  const diastolicData = filteredRecords.map(record => toNumOrNull(record.diastolic));
-  const heartRateData = filteredRecords.map(record => toNumOrNull(record.heart_rate));
+  const {
+    timeAxis,
+    systolicData,
+    diastolicData,
+    heartRateData,
+    yMin,
+    yMax,
+  } = buildHealthChartSeries(filteredRecords);
 
   const option = {
     title: {
@@ -121,9 +128,12 @@ const HealthChart = ({ records = [] }) => {
       formatter: function (params) {
         let result = `${params[0].axisValue}<br/>`;
         params.forEach(param => {
-          if (param.value !== null) {
+          const pointValue = param?.data && typeof param.data === 'object' && !Array.isArray(param.data)
+            ? param.data.value
+            : param.value;
+          if (pointValue !== null && pointValue !== undefined) {
       const unit = param.seriesName === t('chart.series.hr') ? ' bpm' : ' mmHg';
-      result += `${param.seriesName}: ${param.value}${unit}<br/>`;
+      result += `${param.seriesName}: ${pointValue}${unit}<br/>`;
           }
         });
         return result;
@@ -148,39 +158,25 @@ const HealthChart = ({ records = [] }) => {
         rotate: 45,
       },
     },
-    yAxis: [
-      {
-        type: 'value',
-  name: t('chart.yaxis.bp'),
-        position: 'left',
-        axisLabel: {
-          formatter: '{value} mmHg',
-        },
-        min: 50,
-        max: 200,
+    yAxis: {
+      type: 'value',
+      name: t('chart.yaxis.shared'),
+      axisLabel: {
+        formatter: '{value}',
       },
-      {
-        type: 'value',
-  name: t('chart.yaxis.hr'),
-        position: 'right',
-        axisLabel: {
-          formatter: '{value} bpm',
-        },
-        min: 50,
-        max: 150,
-      },
-    ],
+      min: yMin,
+      max: yMax,
+    },
     series: [
       {
   name: t('chart.series.systolic'),
         type: 'line',
-        yAxisIndex: 0,
         data: systolicData,
         itemStyle: {
-          color: '#ff4d4f',
+          color: SYSTOLIC_COLOR,
         },
         lineStyle: {
-          color: '#ff4d4f',
+          color: SYSTOLIC_COLOR,
         },
         connectNulls: false,
         symbol: 'circle',
@@ -195,13 +191,12 @@ const HealthChart = ({ records = [] }) => {
       {
   name: t('chart.series.diastolic'),
         type: 'line',
-        yAxisIndex: 0,
         data: diastolicData,
         itemStyle: {
-          color: '#52c41a',
+          color: DIASTOLIC_COLOR,
         },
         lineStyle: {
-          color: '#52c41a',
+          color: DIASTOLIC_COLOR,
         },
         connectNulls: false,
         symbol: 'circle',
@@ -216,13 +211,12 @@ const HealthChart = ({ records = [] }) => {
       {
   name: t('chart.series.hr'),
         type: 'line',
-        yAxisIndex: 1,
         data: heartRateData,
         itemStyle: {
-          color: '#1890ff',
+          color: HEART_RATE_COLOR,
         },
         lineStyle: {
-          color: '#1890ff',
+          color: HEART_RATE_COLOR,
         },
         connectNulls: false,
         symbol: 'triangle',
