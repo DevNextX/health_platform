@@ -147,6 +147,7 @@
   "chart.range.all": "All",
   "chart.noData": "No data",
   "chart.download": "Download Chart",
+  "chart.yaxis.unified": "Measurements",
   "chart.yaxis.bp": "Blood Pressure (mmHg)",
   "chart.yaxis.hr": "Heart Rate (bpm)",
   "chart.series.systolic": "Systolic",

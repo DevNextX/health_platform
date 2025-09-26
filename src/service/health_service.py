@@ -34,6 +34,43 @@ def _parse_int(value):
     raise ValueError("invalid format")
 
 
+def _parse_iso_datetime(value) -> datetime:
+    """Parse ISO8601-ish timestamps from clients and return a datetime."""
+    if isinstance(value, datetime):
+        return value
+    if not isinstance(value, str):
+        raise TypeError("timestamp must be a string")
+    normalized = value.strip()
+    if not normalized:
+        raise ValueError("empty timestamp")
+    if "T" not in normalized and " " in normalized:
+        normalized = normalized.replace(" ", "T", 1)
+    if normalized[-1:] in ("Z", "z"):
+        normalized = normalized[:-1] + "+00:00"
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError as exc:
+        raise ValueError("invalid timestamp format") from exc
+
+
+def _ensure_utc(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC)
+
+
+def _as_db_datetime(dt: datetime) -> datetime:
+    """Convert to naive UTC for storage/filters (DB columns are naive)."""
+    return _ensure_utc(dt).replace(tzinfo=None)
+
+
+def _format_timestamp(value: datetime) -> str:
+    if value is None:
+        return ""
+    utc_dt = _ensure_utc(value)
+    return utc_dt.isoformat().replace("+00:00", "Z")
+
+
 def _validate_health_record_payload(data, for_update=False, current=None):
     """Validate payload for create/update. Return (clean, errors)."""
     errors = {}
@@ -110,8 +147,13 @@ def create_record():
     diastolic = clean.get("diastolic")
     heart_rate = clean.get("heart_rate")
     ts_raw = data.get("timestamp")
-    # Use timezone-aware UTC datetime to avoid deprecation warnings
-    ts = datetime.now(UTC) if not ts_raw else datetime.fromisoformat(ts_raw.replace("Z", "+00:00"))
+    if ts_raw:
+        try:
+            ts = _as_db_datetime(_parse_iso_datetime(ts_raw))
+        except (TypeError, ValueError):
+            return jsonify(error("400", "Invalid timestamp")), 400
+    else:
+        ts = _as_db_datetime(datetime.now(UTC))
     tags = data.get("tags") or []
     if not isinstance(tags, list):
         return jsonify(error("400", "Validation error", details={"tags": ["must be a list"]})), 400
@@ -149,12 +191,11 @@ def create_record():
         "systolic": rec.systolic,
         "diastolic": rec.diastolic,
         "heart_rate": rec.heart_rate,
-    # Normalize UTC offset to trailing 'Z' for clients
-    "timestamp": rec.timestamp.isoformat().replace("+00:00", "Z"),
+        "timestamp": _format_timestamp(rec.timestamp),
         "tags": tags,
         "note": rec.note,
-    "created_at": rec.created_at.isoformat().replace("+00:00", "Z"),
-    "subject_member_id": subject_member_id,
+        "created_at": _format_timestamp(rec.created_at),
+        "subject_member_id": subject_member_id,
     }), 201
 
 
@@ -175,13 +216,13 @@ def list_records():
     dt = None
     if date_from:
         try:
-            df = datetime.fromisoformat(date_from.replace("Z", "+00:00"))
-        except ValueError:
+            df = _as_db_datetime(_parse_iso_datetime(date_from))
+        except (TypeError, ValueError):
             return jsonify(error("400", "Invalid date_from")), 400
     if date_to:
         try:
-            dt = datetime.fromisoformat(date_to.replace("Z", "+00:00"))
-        except ValueError:
+            dt = _as_db_datetime(_parse_iso_datetime(date_to))
+        except (TypeError, ValueError):
             return jsonify(error("400", "Invalid date_to")), 400
 
     # Filter by member if provided
@@ -246,7 +287,7 @@ def list_records():
         "systolic": r.systolic,
         "diastolic": r.diastolic,
         "heart_rate": r.heart_rate,
-    "timestamp": r.timestamp.isoformat().replace("+00:00", "Z"),
+        "timestamp": _format_timestamp(r.timestamp),
         "tags": json.loads(r.tags) if r.tags else [],
         "note": r.note,
         **({"subject_member_id": subject_member_id} if include_subject else {}),
@@ -271,13 +312,13 @@ def export_csv():
     dt = None
     if date_from:
         try:
-            df = datetime.fromisoformat(date_from.replace("Z", "+00:00"))
-        except ValueError:
+            df = _as_db_datetime(_parse_iso_datetime(date_from))
+        except (TypeError, ValueError):
             return jsonify(error("400", "Invalid date_from")), 400
     if date_to:
         try:
-            dt = datetime.fromisoformat(date_to.replace("Z", "+00:00"))
-        except ValueError:
+            dt = _as_db_datetime(_parse_iso_datetime(date_to))
+        except (TypeError, ValueError):
             return jsonify(error("400", "Invalid date_to")), 400
 
     subject_member_id = request.args.get("subject_member_id")
@@ -352,7 +393,7 @@ def export_csv():
         writer.writerow([
             r.id,
             name_map.get(r.id, (selected_member.full_name if selected_member else "")),
-            r.timestamp.isoformat().replace("+00:00", "Z"),
+            _format_timestamp(r.timestamp),
             r.systolic,
             r.diastolic,
             r.heart_rate if r.heart_rate is not None else "",
@@ -414,10 +455,10 @@ def get_record(rec_id: int):
         "systolic": rec.systolic,
         "diastolic": rec.diastolic,
         "heart_rate": rec.heart_rate,
-    "timestamp": rec.timestamp.isoformat().replace("+00:00", "Z"),
+        "timestamp": _format_timestamp(rec.timestamp),
         "tags": json.loads(rec.tags) if rec.tags else [],
         "note": rec.note,
-    "created_at": rec.created_at.isoformat().replace("+00:00", "Z"),
+        "created_at": _format_timestamp(rec.created_at),
     }), 200
 
 
@@ -440,7 +481,7 @@ def update_record(rec_id: int):
         tags = data.get("tags") or []
         if not isinstance(tags, list):
             return jsonify(error("400", "Validation error", details={"tags": ["must be a list"]})), 400
-        rec.tags = json.dumps(tags)
+        rec.tags = json.dumps(tags, ensure_ascii=False)
     if "note" in data:
         rec.note = data.get("note")
     manager.update(rec)
