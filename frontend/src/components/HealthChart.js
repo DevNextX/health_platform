@@ -104,8 +104,46 @@ const HealthChart = ({ records = [] }) => {
     const n = Number(v);
     return Number.isFinite(n) ? n : null;
   };
-  const systolicData = filteredRecords.map(record => toNumOrNull(record.systolic));
-  const diastolicData = filteredRecords.map(record => toNumOrNull(record.diastolic));
+
+  // Define blood pressure normal ranges: systolic < 120 AND diastolic < 80
+  const isAbnormalBP = (systolic, diastolic) => {
+    const sys = toNumOrNull(systolic);
+    const dia = toNumOrNull(diastolic);
+    if (sys === null || dia === null) return false;
+    return sys >= 120 || dia >= 80;
+  };
+
+  // Prepare data with abnormal highlighting
+  const systolicData = filteredRecords.map((record, index) => {
+    const value = toNumOrNull(record.systolic);
+    if (value === null) return null;
+    
+    const isAbnormal = isAbnormalBP(record.systolic, record.diastolic);
+    return {
+      value,
+      itemStyle: {
+        color: isAbnormal ? '#ff4d4f' : '#1890ff', // Red for abnormal, blue for normal
+        borderColor: isAbnormal ? '#ff4d4f' : '#1890ff',
+        borderWidth: isAbnormal ? 2 : 1,
+      },
+    };
+  });
+
+  const diastolicData = filteredRecords.map((record, index) => {
+    const value = toNumOrNull(record.diastolic);
+    if (value === null) return null;
+    
+    const isAbnormal = isAbnormalBP(record.systolic, record.diastolic);
+    return {
+      value,
+      itemStyle: {
+        color: isAbnormal ? '#ff4d4f' : '#52c41a', // Red for abnormal, green for normal
+        borderColor: isAbnormal ? '#ff4d4f' : '#52c41a',
+        borderWidth: isAbnormal ? 2 : 1,
+      },
+    };
+  });
+
   const heartRateData = filteredRecords.map(record => toNumOrNull(record.heart_rate));
 
   const option = {
@@ -122,8 +160,9 @@ const HealthChart = ({ records = [] }) => {
         let result = `${params[0].axisValue}<br/>`;
         params.forEach(param => {
           if (param.value !== null) {
-      const unit = param.seriesName === t('chart.series.hr') ? ' bpm' : ' mmHg';
-      result += `${param.seriesName}: ${param.value}${unit}<br/>`;
+            // Keep original units for tooltip clarity
+            const unit = param.seriesName === t('chart.series.hr') ? ' bpm' : ' mmHg';
+            result += `${param.seriesName}: ${param.value}${unit}<br/>`;
           }
         });
         return result;
@@ -148,75 +187,49 @@ const HealthChart = ({ records = [] }) => {
         rotate: 45,
       },
     },
-    yAxis: [
-      {
-        type: 'value',
-  name: t('chart.yaxis.bp'),
-        position: 'left',
-        axisLabel: {
-          formatter: '{value} mmHg',
-        },
-        min: 50,
-        max: 200,
+    yAxis: {
+      type: 'value',
+      name: t('chart.yaxis.unified'),
+      axisLabel: {
+        formatter: '{value}',
       },
-      {
-        type: 'value',
-  name: t('chart.yaxis.hr'),
-        position: 'right',
-        axisLabel: {
-          formatter: '{value} bpm',
-        },
-        min: 50,
-        max: 150,
-      },
-    ],
+      min: 40,
+      max: 180,
+    },
     series: [
       {
   name: t('chart.series.systolic'),
         type: 'line',
-        yAxisIndex: 0,
         data: systolicData,
-        itemStyle: {
-          color: '#ff4d4f',
-        },
         lineStyle: {
-          color: '#ff4d4f',
+          color: '#1890ff', // 收缩压线条：蓝色
         },
         connectNulls: false,
         symbol: 'circle',
-        symbolSize: 6,
+        symbolSize: 8,
         emphasis: {
-          itemStyle: {
-            borderColor: '#ff4d4f',
-            borderWidth: 2,
-          },
+          scale: true,
+          scaleSize: 12,
         },
       },
       {
   name: t('chart.series.diastolic'),
         type: 'line',
-        yAxisIndex: 0,
         data: diastolicData,
-        itemStyle: {
-          color: '#52c41a',
-        },
         lineStyle: {
-          color: '#52c41a',
+          color: '#52c41a', // 舒张压线条：绿色
         },
         connectNulls: false,
         symbol: 'circle',
-        symbolSize: 6,
+        symbolSize: 8,
         emphasis: {
-          itemStyle: {
-            borderColor: '#52c41a',
-            borderWidth: 2,
-          },
+          scale: true,
+          scaleSize: 12,
         },
       },
       {
   name: t('chart.series.hr'),
         type: 'line',
-        yAxisIndex: 1,
         data: heartRateData,
         itemStyle: {
           color: '#1890ff',
