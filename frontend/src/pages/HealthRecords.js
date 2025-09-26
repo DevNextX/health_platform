@@ -32,6 +32,7 @@ import { useMember } from '../context/MemberContext';
 import TagSelector from '../components/TagSelector';
 import { tagValueToLabel } from '../utils/tagI18n';
 import { useTranslation } from 'react-i18next';
+import { formatServerTime, parseServerTime } from '../utils/date';
 
 const { TextArea } = Input;
 const { Title } = Typography;
@@ -138,7 +139,7 @@ const HealthRecords = () => {
       systolic_pressure: record.systolic,
       diastolic_pressure: record.diastolic,
       heart_rate: record.heart_rate,
-      timestamp: dayjs(record.timestamp),
+      timestamp: parseServerTime(record.timestamp),
       tags: record.tags || [],
       notes: record.note,
     });
@@ -214,7 +215,7 @@ const HealthRecords = () => {
       title: t('health.columns.time'),
       dataIndex: 'timestamp',
       key: 'timestamp',
-      render: (timestamp) => dayjs(timestamp).format('YYYY-MM-DD HH:mm'),
+      render: (timestamp) => formatServerTime(timestamp),
       sorter: true,
     },
     {

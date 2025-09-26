@@ -17,6 +17,7 @@ import { Empty, Select, Space, Button } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
+import { parseServerTime } from '../utils/date';
 
 const { Option } = Select;
 
@@ -47,12 +48,12 @@ const HealthChart = ({ records = [] }) => {
     switch (timeRange) {
       case 'week':
         filtered = records.filter(record => 
-          dayjs(record.timestamp).isAfter(now.subtract(7, 'day'))
+          parseServerTime(record.timestamp).isAfter(now.subtract(7, 'day'))
         );
         break;
       case 'month':
         filtered = records.filter(record => 
-          dayjs(record.timestamp).isAfter(now.subtract(30, 'day'))
+          parseServerTime(record.timestamp).isAfter(now.subtract(30, 'day'))
         );
         break;
       default:
@@ -61,7 +62,7 @@ const HealthChart = ({ records = [] }) => {
     }
 
     // Sort by timestamp
-    filtered.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    filtered.sort((a, b) => parseServerTime(a.timestamp).valueOf() - parseServerTime(b.timestamp).valueOf());
     setFilteredRecords(filtered);
   }, [records, timeRange]);
 
@@ -96,7 +97,7 @@ const HealthChart = ({ records = [] }) => {
 
   // Prepare data for ECharts
   const timeAxis = filteredRecords.map(record => 
-    dayjs(record.timestamp).format('MM-DD HH:mm')
+    parseServerTime(record.timestamp).format('MM-DD HH:mm')
   );
   
   // Backend fields are `systolic` and `diastolic`; coerce to numbers, use nulls for missing values
