@@ -26,34 +26,44 @@
 
 ## 🚀 已完成功能
 
-```cmd
-:: 运行API测试（推荐使用虚拟环境的 Python 执行器）
-:: 方式A：先激活 .venv（简洁）
-python -m venv .venv
-.\.venv\Scripts\activate.bat
-python -m pytest tests/ -v
-
-:: 方式B：不激活 .venv，直接用虚拟环境解释器（最稳妥，避免" No module named pytest "）
-cd c:\Zhuang\Source\health_platform
-.\.venv\Scripts\python.exe -m pytest tests/ -q
-
-:: 结果: 31/31 测试通过 ✅
-
-:: Kubernetes 部署验证测试
-kubectl get pods -n health-platform
-kubectl logs deployment/frontend -n health-platform
-kubectl logs deployment/backend -n health-platform(Flask)
+### ✅ 后端API (Flask)
 - 用户注册/登录/登出 (JWT认证)
 - 健康记录CRUD操作
 - 数据分页与筛选
 - API限流保护
-- 自动化测试 (31/31通过)
+- 自动化测试 (68/68通过)
+- 时区一致性处理
+
+### ✅ 用户体验优化 V1 🎨
+- **时区一致性**：确保用户输入时间与显示时间保持一致
+- **图表Y轴统一**：单Y轴显示，便于数据比较
+- **血压异常值高亮**：异常血压红色警示，正常血压与线条同色
+  - 收缩压线条：🔵 蓝色 | 舒张压线条：🟢 绿色
+  - 正常血压点：与线条同色 | 异常血压点：🔴 红色警示
+
+```cmd
+:: 运行API测试（推荐使用虚拟环境的 Python 执行器）
+:: 方式A：先激活 .venv（简洁）
+python -m venv .venv
+source .venv/bin/activate
+python -m pytest tests/ -v
+
+:: 方式B：不激活 .venv，直接用虚拟环境解释器（最稳妥）
+cd /home/github/health_platform
+./.venv/bin/python -m pytest tests/ -q
+
+:: 结果: 68/68 测试通过 ✅
 
 ### ✅ 前端界面 (React)
 - 登录/注册（邮箱唯一、表单校验）
 - 健康记录列表（分页、标签/日期筛选）、新增/编辑/删除
 - 仪表盘统计（总数/本周/平均收缩压/平均舒张压/平均心率）
 - 趋势折线图（最近一周/一月/全部），图表下载 PNG
+- **智能图表可视化**：
+  - 🔵 收缩压蓝色线条 | 🟢 舒张压绿色线条
+  - 正常血压数据点与线条同色
+  - 异常血压数据点统一🔴红色警示（≥120/80 mmHg）
+  - 单Y轴统一刻度，便于数据对比
 - 响应式设计
 - 简化版家庭成员：成员档案管理（不能登录），按成员录入与筛选（subject_member_id）
 
@@ -130,6 +140,7 @@ serve -s build -l 3000
 | 用户管理 | ✅ 完成 | 注册/登录/邮箱唯一性校验 |
 | 健康数据录入 | ✅ 完成 | 血压范围校验/标签系统/时间戳 |
 | 数据可视化 | ✅ 完成 | 折线图/时间范围/图表下载 |
+| 用户体验优化V1 | ✅ 完成 | 时区一致性/单Y轴/血压异常值高亮 |
 | 分享与导出 | ✅ 完成 | 图片下载功能 |
 | 响应式设计 | ✅ 完成 | 手机和电脑适配 |
 
