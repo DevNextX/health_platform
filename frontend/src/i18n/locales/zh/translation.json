@@ -82,6 +82,13 @@
   "health.validation.bpRange": "血压值必须在 30-250 mmHg 之间",
   "health.validation.hrRange": "心率必须在 30-150 bpm 之间",
   "health.validation.systolicGreaterThanDiastolic": "收缩压必须大于舒张压",
+  "timeSync.warning.title": "系统时间同步问题",
+  "timeSync.warning.message": "您的系统时间比服务器时间{{direction}}{{discrepancy}}，这可能导致认证问题。",
+  "timeSync.ahead": "快了",
+  "timeSync.behind": "慢了",
+  "timeSync.details": "客户端: {{clientTime}} | 服务器: {{serverTime}}",
+  "timeSync.recheck": "重新检查",
+  "timeSync.dismiss": "忽略",
 
   "members.title": "成员管理",
   "members.add": "新增成员",
