@@ -24,6 +24,7 @@ import { TeamOutlined, IdcardOutlined, SettingOutlined } from '@ant-design/icons
 import { authAPI, userAPI } from '../services/api';
 import { clearTokens, getUserIdFromToken } from '../utils/auth';
 import MemberSelector from './MemberSelector';
+import TimeDiscrepancyWarning from './TimeDiscrepancyWarning';
 import { useMember } from '../context/MemberContext';
 import { useTranslation } from 'react-i18next';
 
@@ -227,6 +228,9 @@ const Layout = () => {
           </Button>
           </div>
         </Header>
+        <div style={{ padding: '0 24px' }}>
+          <TimeDiscrepancyWarning />
+        </div>
         <Content style={{ padding: '24px', minHeight: 'calc(100vh - 64px)' }}>
           <Outlet />
         </Content>
