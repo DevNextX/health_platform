@@ -144,6 +144,7 @@
   "chart.download": "下载图表",
   "chart.yaxis.bp": "血压 (mmHg)",
   "chart.yaxis.hr": "心率 (bpm)",
+  "chart.yaxis.unified": "数值",
   "chart.series.systolic": "收缩压",
   "chart.series.diastolic": "舒张压",
   "chart.series.hr": "心率",

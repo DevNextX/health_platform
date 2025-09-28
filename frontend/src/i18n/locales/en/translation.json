@@ -144,6 +144,7 @@
   "chart.download": "Download Chart",
   "chart.yaxis.bp": "Blood Pressure (mmHg)",
   "chart.yaxis.hr": "Heart Rate (bpm)",
+  "chart.yaxis.unified": "Values",
   "chart.series.systolic": "Systolic",
   "chart.series.diastolic": "Diastolic",
   "chart.series.hr": "Heart Rate",
