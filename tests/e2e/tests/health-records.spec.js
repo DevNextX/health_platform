@@ -253,14 +253,17 @@ test.describe('Health Records Management', () => {
     const modal = page.locator('.ant-modal');
     await expect(modal).toBeVisible({ timeout: 10000 });
     
+    // Test that save button is initially disabled (empty form)
+    const saveBtn = modal.locator('button[type="submit"]').filter({ hasText: /添\s?加|添加/ });
+    await expect(saveBtn.first()).toBeDisabled();
+    
     // Test BP out of new range (25 should be invalid, not auto-corrected to 30)
     await page.fill('input[placeholder="收缩压"]', '25');
     await page.fill('input[placeholder="舒张压"]', '80');
     await page.fill('input[placeholder="心率"]', '72');
     
-    // Try to submit - should show validation error
-    const addBtn = modal.locator('button[type="submit"]').filter({ hasText: /添\s?加|添加/ });
-    await addBtn.first().click();
+    // Button should remain disabled due to validation error
+    await expect(saveBtn.first()).toBeDisabled();
     
     // Should show error for BP being out of range (30-250)
     await expect(page.locator('text=血压值必须在 30-250 mmHg 之间')).toBeVisible();
@@ -273,7 +276,8 @@ test.describe('Health Records Management', () => {
     await page.fill('input[placeholder="舒张压"]', '80');
     await page.fill('input[placeholder="心率"]', '160');
     
-    await addBtn.first().click();
+    // Button should remain disabled due to validation error
+    await expect(saveBtn.first()).toBeDisabled();
     
     // Should show error for HR being out of range (30-150)
     await expect(page.locator('text=心率必须在 30-150 bpm 之间')).toBeVisible();
@@ -286,22 +290,26 @@ test.describe('Health Records Management', () => {
     await page.fill('input[placeholder="舒张压"]', '120');
     await page.fill('input[placeholder="心率"]', '72');
     
-    await addBtn.first().click();
+    // Button should remain disabled due to validation error
+    await expect(saveBtn.first()).toBeDisabled();
     
     // Should show error for systolic <= diastolic
     await expect(page.locator('text=收缩压必须大于舒张压')).toBeVisible();
     
-    // Test valid data with new ranges
+    // Test valid data with new ranges - button should become enabled
     await page.fill('input[placeholder="收缩压"]', '31');  // Valid: just above minimum
     await page.fill('input[placeholder="舒张压"]', '30');  // Valid: minimum value
     await page.fill('input[placeholder="心率"]', '150');   // Valid: maximum value
     
-    await addBtn.first().click();
+    // Button should now be enabled
+    await expect(saveBtn.first()).toBeEnabled();
+    
+    await saveBtn.first().click();
     
     // Should succeed
     await expect(page.locator('.ant-message-success')).toBeVisible();
     
-    // Test optional heart rate (empty should be valid)
+    // Test optional heart rate (empty should be valid) and button should be enabled
     await page.click('text=添加记录');
     const modal2 = page.locator('.ant-modal');
     await expect(modal2).toBeVisible({ timeout: 10000 });
@@ -310,8 +318,11 @@ test.describe('Health Records Management', () => {
     await page.fill('input[placeholder="舒张压"]', '80');
     // Leave heart rate empty
     
-    const addBtn2 = modal2.locator('button[type="submit"]').filter({ hasText: /添\s?加|添加/ });
-    await addBtn2.first().click();
+    const saveBtn2 = modal2.locator('button[type="submit"]').filter({ hasText: /添\s?加|添加/ });
+    // Button should be enabled with empty heart rate
+    await expect(saveBtn2.first()).toBeEnabled();
+    
+    await saveBtn2.first().click();
     
     // Should succeed with empty heart rate
     await expect(page.locator('.ant-message-success')).toBeVisible();
