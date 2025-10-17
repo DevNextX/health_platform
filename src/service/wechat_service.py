@@ -77,7 +77,8 @@ def wechat_login():
     # Create Self member if not exists
     try:
         member_manager.get_or_create_self_member(user.id)
-    except Exception:
+    except (ValueError, AttributeError) as e:
+        # Log error but continue - member creation failure shouldn't block login
         pass
     
     # Generate JWT tokens
