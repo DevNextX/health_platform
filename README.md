@@ -213,7 +213,7 @@ health_platform/
 
 - 家庭成员管理
 - CSV数据导出  
-- 微信小程序
+- ✅ **微信小程序** - [集成文档](docs/WECHAT-MINIAPP-INTEGRATION.md)
 - Azure容器化部署
 
 ## 🛠️ 容器化部署经验总结
