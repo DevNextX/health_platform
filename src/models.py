@@ -50,6 +50,9 @@ class User(db.Model):
     gender = db.Column(db.String(16))
     weight = db.Column(db.Float)
     token_version = db.Column(db.Integer, default=0, nullable=False)
+    # GitHub OAuth fields
+    github_id = db.Column(db.Integer, unique=True, nullable=True)
+    github_username = db.Column(db.String(120), nullable=True)
     # Use naive UTC datetimes for cross-DB compatibility (MySQL DATETIME has no TZ)
     created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), nullable=False)
     updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow(), nullable=False)

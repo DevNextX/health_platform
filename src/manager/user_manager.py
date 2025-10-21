@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from ..extensions import db
 from ..models import User
 from ..security import hash_password
+import secrets
 
 
 class UserManager:
@@ -32,6 +33,42 @@ class UserManager:
 
     def get_user_by_email(self, email: str) -> Optional[User]:
         return User.query.filter_by(email=email).first()
+
+    def get_user_by_github_id(self, github_id: int) -> Optional[User]:
+        return User.query.filter_by(github_id=github_id).first()
+
+    def create_user_from_github(self, username: str, email: str, github_id: int, github_username: str,
+                                age: Optional[int] = None, gender: Optional[str] = None, 
+                                weight: Optional[float] = None) -> User:
+        """Create a new user from GitHub OAuth data"""
+        user = User()
+        user.username = username
+        user.email = email
+        # Generate a random password hash for GitHub users (they won't use password login)
+        user.password_hash = hash_password(secrets.token_urlsafe(32))
+        user.github_id = github_id
+        user.github_username = github_username
+        user.age = age
+        user.gender = gender
+        user.weight = weight
+        db.session.add(user)
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            raise ValueError("EMAIL_EXISTS")
+        return user
+
+    def link_github_account(self, user: User, github_id: int, github_username: str) -> User:
+        """Link an existing user account with GitHub"""
+        user.github_id = github_id
+        user.github_username = github_username
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            raise ValueError("GITHUB_ID_EXISTS")
+        return user
 
     def update_user(self, user: User, **fields) -> User:
         for k, v in fields.items():

@@ -28,3 +28,10 @@ class Config:
     ).split(",")
     RATELIMIT_DEFAULT = os.getenv("RATELIMIT_DEFAULT", "60 per minute")
     RATELIMIT_AUTH = os.getenv("RATELIMIT_AUTH", "5 per minute")
+    # Flask session (for OAuth state storage)
+    SECRET_KEY = os.getenv("SECRET_KEY", os.getenv("JWT_SECRET", "dev-secret-change-me"))
+    SESSION_TYPE = "filesystem"
+    # GitHub OAuth settings
+    GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "")
+    GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "")
+    GITHUB_REDIRECT_URI = os.getenv("GITHUB_REDIRECT_URI", "http://localhost:5000/api/v1/auth/github/callback")
