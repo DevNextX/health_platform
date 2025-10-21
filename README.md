@@ -44,18 +44,32 @@ kubectl get pods -n health-platform
 kubectl logs deployment/frontend -n health-platform
 kubectl logs deployment/backend -n health-platform(Flask)
 - 用户注册/登录/登出 (JWT认证)
+- **GitHub OAuth 登录** (一键登录，自动注册/关联账户)
 - 健康记录CRUD操作
 - 数据分页与筛选
 - API限流保护
-- 自动化测试 (31/31通过)
+- 自动化测试 (43/43通过)
 
 ### ✅ 前端界面 (React)
 - 登录/注册（邮箱唯一、表单校验）
+- **GitHub 一键登录** (OAuth 2.0, 支持邮箱隐私保护)
 - 健康记录列表（分页、标签/日期筛选）、新增/编辑/删除
 - 仪表盘统计（总数/本周/平均收缩压/平均舒张压/平均心率）
 - 趋势折线图（最近一周/一月/全部），图表下载 PNG
 - 响应式设计
 - 简化版家庭成员：成员档案管理（不能登录），按成员录入与筛选（subject_member_id）
+
+### 🔐 GitHub OAuth 登录
+
+新增的 GitHub 登录功能提供：
+- ✅ 一键登录，无需记忆密码
+- ✅ 自动注册新用户
+- ✅ 自动关联现有账户（通过邮箱）
+- ✅ 支持 GitHub 邮箱隐私保护
+- ✅ 完整的 OAuth 2.0 安全实现
+- ✅ 中英文双语支持
+
+详见 **[GitHub 登录配置指南](docs/GITHUB-LOGIN-GUIDE.md)**
 
 ## 🚀 快速开始
 

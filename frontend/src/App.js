@@ -17,6 +17,8 @@ import 'dayjs/locale/en';
 
 import Layout from './components/Layout';
 import Login from './pages/Login';
+import LoginCallback from './pages/LoginCallback';
+import CompleteRegistration from './pages/CompleteRegistration';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import HealthRecords from './pages/HealthRecords';
@@ -84,6 +86,8 @@ function App() {
                 <Login />
               </PublicRoute>
             } />
+            <Route path="/login/callback" element={<LoginCallback />} />
+            <Route path="/login/complete-registration" element={<CompleteRegistration />} />
             <Route path="/register" element={
               <PublicRoute>
                 <Register />

@@ -168,5 +168,18 @@
   "tags.dizziness": "Dizziness",
   "tags.chest_tightness": "Chest Tightness",
   "tags.palpitations": "Palpitations",
-  "tags.fatigue": "Fatigue"
+  "tags.fatigue": "Fatigue",
+
+  "login.githubLogin": "Login with GitHub",
+  "messages.github.cancelled": "GitHub login cancelled",
+  "messages.github.failed": "GitHub login failed. Please try again.",
+  "messages.github.emailExists": "Email already registered",
+  
+  "completeRegistration.title": "Complete Your Registration",
+  "completeRegistration.subtitle": "Your GitHub email is private. Please provide an email address to complete your registration.",
+  "completeRegistration.emailRequired": "Please enter your email address",
+  "completeRegistration.emailInvalid": "Please enter a valid email address",
+  "completeRegistration.emailPlaceholder": "Enter your email",
+  "completeRegistration.submit": "Complete Registration",
+  "completeRegistration.backToLogin": "Back to Login"
 }

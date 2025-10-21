@@ -168,5 +168,18 @@
   "tags.dizziness": "头晕",
   "tags.chest_tightness": "胸闷",
   "tags.palpitations": "心悸",
-  "tags.fatigue": "疲劳"
+  "tags.fatigue": "疲劳",
+
+  "login.githubLogin": "使用 GitHub 登录",
+  "messages.github.cancelled": "GitHub 登录已取消",
+  "messages.github.failed": "GitHub 登录失败，请重试",
+  "messages.github.emailExists": "邮箱已被注册",
+  
+  "completeRegistration.title": "完成注册",
+  "completeRegistration.subtitle": "您的 GitHub 邮箱是私密的。请提供邮箱地址以完成注册。",
+  "completeRegistration.emailRequired": "请输入邮箱地址",
+  "completeRegistration.emailInvalid": "请输入有效的邮箱地址",
+  "completeRegistration.emailPlaceholder": "输入邮箱地址",
+  "completeRegistration.submit": "完成注册",
+  "completeRegistration.backToLogin": "返回登录"
 }
