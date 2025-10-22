@@ -9,6 +9,7 @@
 - 🔐 **[安全配置管理指南](docs/SECURITY-CONFIG.md)** - 配置分层策略与安全最佳实践
 - 🔧 **[GitHub 环境配置指南](docs/GITHUB-ENVIRONMENT-SETUP.md)** - GitHub Environments 设置教程
 - 🚀 **[部署文档](deploy/README.md)** - K8s 部署指南
+- 💚 **[微信扫码登录集成](docs/WECHAT_LOGIN.md)** - 微信 OAuth 登录功能文档
 
 ## 🔒 安全配置
 
@@ -44,18 +45,21 @@ kubectl get pods -n health-platform
 kubectl logs deployment/frontend -n health-platform
 kubectl logs deployment/backend -n health-platform(Flask)
 - 用户注册/登录/登出 (JWT认证)
+- **微信扫码登录** - 支持微信 OAuth 登录和账号绑定 ([详细文档](docs/WECHAT_LOGIN.md))
 - 健康记录CRUD操作
 - 数据分页与筛选
 - API限流保护
-- 自动化测试 (31/31通过)
+- 自动化测试 (42/42通过，包括11个微信功能测试)
 
 ### ✅ 前端界面 (React)
 - 登录/注册（邮箱唯一、表单校验）
+- **微信扫码登录** - PC端扫码登录，支持新用户自动注册
 - 健康记录列表（分页、标签/日期筛选）、新增/编辑/删除
 - 仪表盘统计（总数/本周/平均收缩压/平均舒张压/平均心率）
 - 趋势折线图（最近一周/一月/全部），图表下载 PNG
 - 响应式设计
 - 简化版家庭成员：成员档案管理（不能登录），按成员录入与筛选（subject_member_id）
+- **个人中心微信绑定** - 支持将微信账号绑定到现有邮箱账户
 
 ## 🚀 快速开始
 
