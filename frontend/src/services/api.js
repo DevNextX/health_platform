@@ -84,6 +84,13 @@ export const authAPI = {
   logoutAll: () => api.post('/api/v1/auth/logout-all'),
 };
 
+// WeChat OAuth APIs
+export const wechatAPI = {
+  getQRCode: () => api.get('/api/v1/auth/wechat/qr'),
+  callback: (code) => api.post('/api/v1/auth/wechat/callback', { code }),
+  bind: (code) => api.post('/api/v1/auth/wechat/bind', { code }),
+};
+
 // User APIs
 export const userAPI = {
   getProfile: (userId) => api.get(`/api/v1/user/${userId}`),

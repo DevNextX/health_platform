@@ -17,11 +17,14 @@ import {
   Col,
   Avatar,
   Divider,
+  Tag,
+  Modal,
 } from 'antd';
-import { UserOutlined, MailOutlined, SaveOutlined } from '@ant-design/icons';
-import { userAPI } from '../services/api';
+import { UserOutlined, MailOutlined, SaveOutlined, WechatOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { userAPI, wechatAPI } from '../services/api';
 import { getUserIdFromToken } from '../utils/auth';
 import { useTranslation } from 'react-i18next';
+import WeChatQRModal from '../components/WeChatQRModal';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -32,6 +35,8 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
+  const [wechatModalVisible, setWechatModalVisible] = useState(false);
+  const [bindingWeChat, setBindingWeChat] = useState(false);
 
   const fetchUserInfo = useCallback(async () => {
     try {
@@ -99,6 +104,27 @@ const Profile = () => {
     }
   };
 
+  const handleWeChatBind = () => {
+    setWechatModalVisible(true);
+  };
+
+  const handleWeChatBindSuccess = async (code) => {
+    setBindingWeChat(true);
+    try {
+      await wechatAPI.bind(code);
+      message.success(t('messages.wechat.bindSuccess'));
+      setWechatModalVisible(false);
+      // Refresh user info
+      await fetchUserInfo();
+    } catch (error) {
+      console.error('Failed to bind WeChat:', error);
+      const errorMessage = error.response?.data?.message || t('messages.wechat.bindFail');
+      message.error(errorMessage);
+    } finally {
+      setBindingWeChat(false);
+    }
+  };
+
   if (loading) {
     return (
       <Card loading={loading}>
@@ -161,6 +187,35 @@ const Profile = () => {
                     t('profile.unknown')
                   }
                 </Text>
+              </div>
+              
+              <Divider />
+              
+              <div>
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Text strong>{t('profile.wechat.title')}：</Text>
+                  {userInfo?.wechat_unionid ? (
+                    <Tag icon={<CheckCircleOutlined />} color="success">
+                      {t('profile.wechat.bound')}
+                    </Tag>
+                  ) : (
+                    <>
+                      <Text type="secondary">{t('profile.wechat.notBound')}</Text>
+                      <Button
+                        type="primary"
+                        icon={<WechatOutlined />}
+                        onClick={handleWeChatBind}
+                        loading={bindingWeChat}
+                        style={{
+                          backgroundColor: '#07C160',
+                          borderColor: '#07C160',
+                        }}
+                      >
+                        {t('profile.wechat.bind')}
+                      </Button>
+                    </>
+                  )}
+                </Space>
               </div>
             </Space>
           </Card>
@@ -297,6 +352,12 @@ const Profile = () => {
           </Card>
         </Col>
       </Row>
+
+      <WeChatQRModal
+        visible={wechatModalVisible}
+        onClose={() => setWechatModalVisible(false)}
+        onSuccess={handleWeChatBindSuccess}
+      />
     </div>
   );
 };
