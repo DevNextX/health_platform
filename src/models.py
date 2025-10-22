@@ -45,11 +45,15 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(256), nullable=False)
+    password_hash = db.Column(db.String(256), nullable=True)  # Nullable for WeChat-only users
     age = db.Column(db.Integer)
     gender = db.Column(db.String(16))
     weight = db.Column(db.Float)
     token_version = db.Column(db.Integer, default=0, nullable=False)
+    # WeChat OAuth fields
+    wechat_unionid = db.Column(db.String(128), unique=True, nullable=True, index=True)
+    avatar_url = db.Column(db.String(512), nullable=True)
+    is_wechat_user = db.Column(db.Boolean, default=False, nullable=False)
     # Use naive UTC datetimes for cross-DB compatibility (MySQL DATETIME has no TZ)
     created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), nullable=False)
     updated_at = db.Column(db.DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow(), nullable=False)

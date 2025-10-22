@@ -28,3 +28,7 @@ class Config:
     ).split(",")
     RATELIMIT_DEFAULT = os.getenv("RATELIMIT_DEFAULT", "60 per minute")
     RATELIMIT_AUTH = os.getenv("RATELIMIT_AUTH", "5 per minute")
+    # WeChat OAuth configuration
+    WECHAT_APP_ID = os.getenv("WECHAT_APP_ID", "")
+    WECHAT_APP_SECRET = os.getenv("WECHAT_APP_SECRET", "")
+    WECHAT_REDIRECT_URI = os.getenv("WECHAT_REDIRECT_URI", "http://localhost:3000/auth/wechat/callback")

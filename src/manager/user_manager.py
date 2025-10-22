@@ -9,12 +9,12 @@ from ..security import hash_password
 
 
 class UserManager:
-    def create_user(self, username: str, email: str, password: str,
+    def create_user(self, username: str, email: str, password: str = None,
                     age: Optional[int] = None, gender: Optional[str] = None, weight: Optional[float] = None) -> User:
         user = User()
         user.username = username
         user.email = email
-        user.password_hash = hash_password(password)
+        user.password_hash = hash_password(password) if password else None
         user.age = age
         user.gender = gender
         user.weight = weight
