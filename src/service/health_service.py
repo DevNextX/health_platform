@@ -29,8 +29,10 @@ def create_record():
         diastolic = int(data.get("diastolic"))
     except (TypeError, ValueError):
         return jsonify(error("400", "Invalid blood pressure")), 400
-    if not (50 <= systolic <= 250) or not (50 <= diastolic <= 250):
-        return jsonify(error("422", "Blood pressure out of range (50-250)")), 422
+    if not (30 <= systolic <= 250):
+        return jsonify(error("422", "Systolic pressure out of range (30-250 mmHg)")), 422
+    if not (30 <= diastolic <= 250):
+        return jsonify(error("422", "Diastolic pressure out of range (30-250 mmHg)")), 422
     heart_rate = data.get("heart_rate")
     if heart_rate is not None:
         try:
@@ -362,15 +364,15 @@ def update_record(rec_id: int):
             rec.systolic = int(data["systolic"])
         except (TypeError, ValueError):
             return jsonify(error("400", "Invalid systolic")), 400
-        if not (50 <= rec.systolic <= 250):
-            return jsonify(error("422", "Blood pressure out of range (50-250)")), 422
+        if not (30 <= rec.systolic <= 250):
+            return jsonify(error("422", "Systolic pressure out of range (30-250 mmHg)")), 422
     if "diastolic" in data:
         try:
             rec.diastolic = int(data["diastolic"])
         except (TypeError, ValueError):
             return jsonify(error("400", "Invalid diastolic")), 400
-        if not (50 <= rec.diastolic <= 250):
-            return jsonify(error("422", "Blood pressure out of range (50-250)")), 422
+        if not (30 <= rec.diastolic <= 250):
+            return jsonify(error("422", "Diastolic pressure out of range (30-250 mmHg)")), 422
     if "heart_rate" in data:
         try:
             rec.heart_rate = int(data["heart_rate"])

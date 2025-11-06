@@ -261,3 +261,120 @@ class TestHealthEndpoints:
         # Second user should not be able to access first user's record
         response = client.get(f'/api/v1/health/{record_id}', headers=user2_headers)
         assert response.status_code == 404  # Or 403, depending on implementation
+    
+    def test_blood_pressure_validation_lower_bound(self, client, auth_headers):
+        """Test blood pressure validation at lower boundary (30 mmHg)"""
+        access_headers = auth_headers['access']
+        
+        # Test 30 mmHg (should be accepted - at lower boundary)
+        record_data = {
+            'systolic': 30,
+            'diastolic': 30,
+            'heart_rate': 72
+        }
+        response = client.post('/api/v1/health', json=record_data, headers=access_headers)
+        assert response.status_code == 201
+        data = response.get_json()
+        assert data['systolic'] == 30
+        assert data['diastolic'] == 30
+        
+        # Test 29 mmHg (should be rejected - below lower boundary)
+        record_data = {
+            'systolic': 29,
+            'diastolic': 80,
+            'heart_rate': 72
+        }
+        response = client.post('/api/v1/health', json=record_data, headers=access_headers)
+        assert response.status_code == 422
+        error_data = response.get_json()
+        assert 'out of range' in error_data['message'].lower() or '30-250' in error_data['message']
+        
+        # Test diastolic 29 mmHg (should be rejected)
+        record_data = {
+            'systolic': 120,
+            'diastolic': 29,
+            'heart_rate': 72
+        }
+        response = client.post('/api/v1/health', json=record_data, headers=access_headers)
+        assert response.status_code == 422
+        error_data = response.get_json()
+        assert 'out of range' in error_data['message'].lower() or '30-250' in error_data['message']
+    
+    def test_blood_pressure_validation_upper_bound(self, client, auth_headers):
+        """Test blood pressure validation at upper boundary (250 mmHg)"""
+        access_headers = auth_headers['access']
+        
+        # Test 250 mmHg (should be accepted - at upper boundary)
+        record_data = {
+            'systolic': 250,
+            'diastolic': 250,
+            'heart_rate': 72
+        }
+        response = client.post('/api/v1/health', json=record_data, headers=access_headers)
+        assert response.status_code == 201
+        data = response.get_json()
+        assert data['systolic'] == 250
+        assert data['diastolic'] == 250
+        
+        # Test 251 mmHg (should be rejected - above upper boundary)
+        record_data = {
+            'systolic': 251,
+            'diastolic': 80,
+            'heart_rate': 72
+        }
+        response = client.post('/api/v1/health', json=record_data, headers=access_headers)
+        assert response.status_code == 422
+        error_data = response.get_json()
+        assert 'out of range' in error_data['message'].lower() or '30-250' in error_data['message']
+        
+        # Test diastolic 251 mmHg (should be rejected)
+        record_data = {
+            'systolic': 120,
+            'diastolic': 251,
+            'heart_rate': 72
+        }
+        response = client.post('/api/v1/health', json=record_data, headers=access_headers)
+        assert response.status_code == 422
+        error_data = response.get_json()
+        assert 'out of range' in error_data['message'].lower() or '30-250' in error_data['message']
+    
+    def test_blood_pressure_update_validation(self, client, auth_headers):
+        """Test blood pressure validation during update operations"""
+        access_headers = auth_headers['access']
+        
+        # Create a valid record first
+        record_data = {
+            'systolic': 120,
+            'diastolic': 80,
+            'heart_rate': 72
+        }
+        create_response = client.post('/api/v1/health', json=record_data, headers=access_headers)
+        record_id = create_response.get_json()['id']
+        
+        # Try to update with invalid systolic (below range)
+        update_data = {'systolic': 25}
+        response = client.put(f'/api/v1/health/{record_id}', json=update_data, headers=access_headers)
+        assert response.status_code == 422
+        
+        # Try to update with invalid systolic (above range)
+        update_data = {'systolic': 260}
+        response = client.put(f'/api/v1/health/{record_id}', json=update_data, headers=access_headers)
+        assert response.status_code == 422
+        
+        # Try to update with invalid diastolic (below range)
+        update_data = {'diastolic': 20}
+        response = client.put(f'/api/v1/health/{record_id}', json=update_data, headers=access_headers)
+        assert response.status_code == 422
+        
+        # Try to update with invalid diastolic (above range)
+        update_data = {'diastolic': 255}
+        response = client.put(f'/api/v1/health/{record_id}', json=update_data, headers=access_headers)
+        assert response.status_code == 422
+        
+        # Verify valid updates still work with new range
+        update_data = {'systolic': 30, 'diastolic': 250}
+        response = client.put(f'/api/v1/health/{record_id}', json=update_data, headers=access_headers)
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['systolic'] == 30
+        assert data['diastolic'] == 250
