@@ -76,20 +76,15 @@
   - Internationalization middleware
   - Unit and E2E test suites
 
-### Validation Rules
-- **Blood pressure**: Systolic & diastolic 30-250 mmHg; systolic must be greater than diastolic
-- **Heart rate**: Optional field, when present must be 30-150 bpm
-- **Weight**: Positive number, reasonable human range
-- **Member names**: Cannot duplicate existing names; "Self/自己" is reserved
-
-### Gotchas
-- Don't break "Self/自己" protections. Don't switch pagination param names. Don't re-escape tag JSON. Ensure CSV keeps BOM.
-- Use `datetime.now(datetime.UTC)` rather than deprecated `datetime.utcnow()` for new code.
-- Empty strings for optional numeric fields should be treated as None/null.
-- Keep edits minimal, preserve public APIs, and match existing patterns.
+### Branch & PR policy
+- 默认开发基线是 `develop` 分支；请先 `git checkout develop && git pull` 再创建 `feature/<issue>-<slug>` 或 `hotfix/<slug>` 分支。
+- 功能完成后先发起 `feature/* → develop` 的 PR，禁止直接改动 `main`/`staging`。
+- 合并前请确保分支已 rebase 到最新 `develop` 并解决冲突。
+- 紧急修复从 `main` 切出 `hotfix/*`，回合并 `main` 后务必同步 `staging`、`develop`。
 
 ### Developer workflows (shell‑agnostic)
 **IMPORTANT**: The backend and frontend services must be run in **separate, dedicated terminal windows**. Do not close these terminals or run other commands in them, as this will terminate the services. Open a new terminal for any subsequent commands (e.g., running tests).
+再次强调，前后端必须运行在**不同的终端窗口**，且各自专用，切勿关闭或在其中运行其他命令。同时，后端的python请运行在虚拟环境中。必须开启三个终端窗口，分别用于后端、前端和E2E测试。
 
 - Backend venv + run (in terminal 1):
   - Create venv (all shells): `python -m venv .venv`
@@ -121,3 +116,4 @@ Note: PowerShell 中避免使用 `&&`，请用分号或换行；Bash/cmd 可使�
 - Respect CORS and headers already configured; if adding downloads, expose needed headers.
 
 
+更多的项目信息，请参考Readme.md!
