@@ -65,6 +65,7 @@
   "health.form.systolic": "Systolic (mmHg)",
   "health.form.diastolic": "Diastolic (mmHg)",
   "health.form.heartRate": "Heart Rate (bpm)",
+  "health.form.systolicGreaterThanDiastolic": "Systolic pressure must be greater than diastolic pressure",
   "health.form.tags": "Tags",
   "health.form.notes": "Notes",
   "health.form.save": "Save",

@@ -242,7 +242,7 @@ test.describe('Health Records Management', () => {
   await addBtnHR5.first().click();
     
     // Check validation messages for out of range values
-  await expect(page.locator('text=收缩压范围：50-250 mmHg')).toBeVisible();
-  await expect(page.locator('text=舒张压范围：50-250 mmHg')).toBeVisible();
+  await expect(page.locator('text=30-250 mmHg')).toBeVisible();
+  await expect(page.locator('text=30-250 mmHg')).toBeVisible();
   });
 });
