@@ -24,6 +24,7 @@ import { TeamOutlined, IdcardOutlined, SettingOutlined } from '@ant-design/icons
 import { authAPI, userAPI } from '../services/api';
 import { clearTokens, getUserIdFromToken } from '../utils/auth';
 import MemberSelector from './MemberSelector';
+import TimeSyncWarning from './TimeSyncWarning';
 import { useMember } from '../context/MemberContext';
 import { useTranslation } from 'react-i18next';
 
@@ -228,6 +229,7 @@ const Layout = () => {
           </div>
         </Header>
         <Content style={{ padding: '24px', minHeight: 'calc(100vh - 64px)' }}>
+          <TimeSyncWarning />
           <Outlet />
         </Content>
       </AntLayout>

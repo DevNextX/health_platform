@@ -19,6 +19,8 @@ def make_tokens(identity: str | int, token_version: int, additional_claims: dict
     claims = {"token_version": token_version}
     if additional_claims:
         claims.update(additional_claims)
-    at = create_access_token(identity=identity, additional_claims=claims, expires_delta=access_expires)
-    rt = create_refresh_token(identity=identity, additional_claims=claims, expires_delta=refresh_expires)
+    # Convert identity to string to avoid JWT subject type issues
+    str_identity = str(identity)
+    at = create_access_token(identity=str_identity, additional_claims=claims, expires_delta=access_expires)
+    rt = create_refresh_token(identity=str_identity, additional_claims=claims, expires_delta=refresh_expires)
     return {"access_token": at, "refresh_token": rt}
