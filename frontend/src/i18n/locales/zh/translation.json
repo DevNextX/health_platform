@@ -79,6 +79,9 @@
   "health.messages.deleteSuccess": "删除成功",
   "health.messages.deleteFail": "删除失败",
   "health.messages.exportFail": "导出失败",
+  "health.validation.bpRange": "血压值必须在 30-250 mmHg 之间",
+  "health.validation.systolicRange": "收缩压必须在 30-250 mmHg 之间",
+  "health.validation.diastolicRange": "舒张压必须在 30-250 mmHg 之间",
 
   "members.title": "成员管理",
   "members.add": "新增成员",

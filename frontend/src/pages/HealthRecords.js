@@ -442,14 +442,14 @@ const HealthRecords = () => {
                 label={t('health.form.systolic')}
                 rules={[
                   { required: true, message: t('health.form.systolic') },
-                  { type: 'number', min: 50, max: 250, message: '50-250 mmHg' }
+                  { type: 'number', min: 30, max: 250, message: '30-250 mmHg' }
                 ]}
               >
                 <InputNumber
                   data-testid="systolic-pressure"
                   placeholder={t('health.form.systolic')}
                   style={{ width: '100%' }}
-                  min={50}
+                  min={30}
                   max={250}
                 />
               </Form.Item>
@@ -460,14 +460,14 @@ const HealthRecords = () => {
                 label={t('health.form.diastolic')}
                 rules={[
                   { required: true, message: t('health.form.diastolic') },
-                  { type: 'number', min: 50, max: 250, message: '50-250 mmHg' }
+                  { type: 'number', min: 30, max: 250, message: '30-250 mmHg' }
                 ]}
               >
                 <InputNumber
                   data-testid="diastolic-pressure"
                   placeholder={t('health.form.diastolic')}
                   style={{ width: '100%' }}
-                  min={50}
+                  min={30}
                   max={250}
                 />
               </Form.Item>

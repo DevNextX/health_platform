@@ -79,6 +79,9 @@
   "health.messages.deleteSuccess": "Deleted successfully",
   "health.messages.deleteFail": "Delete failed",
   "health.messages.exportFail": "Export failed",
+  "health.validation.bpRange": "Blood pressure must be between 30-250 mmHg",
+  "health.validation.systolicRange": "Systolic pressure must be between 30-250 mmHg",
+  "health.validation.diastolicRange": "Diastolic pressure must be between 30-250 mmHg",
 
   "members.title": "Members",
   "members.add": "New Member",
