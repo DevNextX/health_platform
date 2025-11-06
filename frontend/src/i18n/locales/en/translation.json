@@ -79,6 +79,9 @@
   "health.messages.deleteSuccess": "Deleted successfully",
   "health.messages.deleteFail": "Delete failed",
   "health.messages.exportFail": "Export failed",
+  "health.validation.bpRange": "Blood pressure range must be 30-250",
+  "health.validation.heartRateRange": "Heart rate range must be 30-150",
+  "health.validation.systolicGreater": "Systolic must be greater than diastolic",
 
   "members.title": "Members",
   "members.add": "New Member",
