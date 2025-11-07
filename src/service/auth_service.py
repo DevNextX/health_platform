@@ -161,7 +161,8 @@ def wechat_login():
             "state": state
         }), 200
     except ValueError as e:
-        return jsonify(error("500", str(e))), 500
+        current_app.logger.error(f"WeChat configuration error: {e}")
+        return jsonify(error("500", "WeChat configuration error")), 500
     except Exception as e:
         current_app.logger.error(f"WeChat login error: {e}")
         return jsonify(error("500", "Failed to generate QR code")), 500
