@@ -254,3 +254,45 @@ class TestWeChatAuth:
         
         data = response.get_json()
         assert 'Invalid or expired state' in data['message']
+    
+    @patch('src.manager.wechat_manager.WeChatManager.get_access_token')
+    def test_wechat_only_user_cannot_login_with_password(self, mock_get_access_token, client):
+        """Test that WeChat-only users (no password set) cannot login with email/password"""
+        # Create a WeChat-only user (no password)
+        with patch('src.manager.wechat_manager.WeChatManager.get_qrcode_url') as mock_qr:
+            mock_qr.return_value = "https://test.url"
+            qr_response = client.get('/api/v1/auth/wechat/login')
+            state = qr_response.get_json()['state']
+        
+        mock_get_access_token.return_value = {
+            'access_token': 'test_access_token',
+            'openid': 'wechat_only_openid'
+        }
+        
+        client.post('/api/v1/auth/wechat/callback', json={
+            'code': 'test_auth_code',
+            'state': state
+        })
+        
+        # Bind without password
+        bind_data = {
+            'state': state,
+            'username': 'wechat_only',
+            'email': 'wechatonly@test.com'
+            # No password
+        }
+        
+        bind_response = client.post('/api/v1/auth/wechat/bind', json=bind_data)
+        assert bind_response.status_code == 201
+        
+        # Try to login with email/password (should fail)
+        login_data = {
+            'email': 'wechatonly@test.com',
+            'password': 'any_password'
+        }
+        
+        response = client.post('/api/v1/auth/login', json=login_data)
+        assert response.status_code == 401
+        
+        data = response.get_json()
+        assert 'Invalid credentials' in data['message']
