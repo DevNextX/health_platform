@@ -36,7 +36,7 @@ const BindEmail = () => {
         state: wechatState,
         username: values.username,
         email: values.email,
-        password: values.password || undefined, // Optional
+        password: values.password, // Optional
         age: values.age,
         gender: values.gender,
         weight: values.weight,

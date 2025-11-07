@@ -43,45 +43,46 @@ WECHAT_REDIRECT_URI=https://yourdomain.com/wechat/callback
 
 ## Production Considerations
 
-### 1. State Storage (Important!)
+### 1. State Storage
 
-The current MVP implementation uses in-memory storage for authentication states, which:
-- Won't work across multiple server instances
-- Will lose state on server restart
-- Is not suitable for production
+The application now includes Redis-backed state storage with automatic fallback to in-memory storage.
 
-**Recommended Solution**: Implement Redis-backed state storage
+**Redis Configuration (Recommended for Production)**:
 
-Example implementation:
-```python
-import redis
-import json
-from datetime import timedelta
+Add the following environment variables:
+```bash
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_DB=0
+REDIS_PASSWORD=your_redis_password  # Optional
+```
 
-redis_client = redis.Redis(
-    host=os.getenv('REDIS_HOST', 'localhost'),
-    port=int(os.getenv('REDIS_PORT', 6379)),
-    db=int(os.getenv('REDIS_DB', 0))
-)
+**Behavior**:
+- If Redis is configured and accessible, the application will use Redis for state storage
+- If Redis is not available, it falls back to in-memory storage with a warning
+- In-memory storage is suitable for development but not recommended for production as:
+  - Won't work across multiple server instances
+  - Will lose state on server restart
+  - Does not provide CSRF protection guarantees in multi-instance scenarios
 
-def store_wechat_state(state, data, expire=600):
-    """Store WeChat state in Redis with expiration"""
-    redis_client.setex(
-        f"wechat:state:{state}",
-        timedelta(seconds=expire),
-        json.dumps(data)
-    )
+**Redis Setup**:
 
-def get_wechat_state(state):
-    """Retrieve WeChat state from Redis"""
-    data = redis_client.get(f"wechat:state:{state}")
-    if data:
-        return json.loads(data)
-    return None
+Using Docker:
+```bash
+docker run -d -p 6379:6379 --name redis redis:7-alpine
+```
 
-def delete_wechat_state(state):
-    """Delete WeChat state from Redis"""
-    redis_client.delete(f"wechat:state:{state}")
+Using Docker Compose (add to your docker-compose.yml):
+```yaml
+redis:
+  image: redis:7-alpine
+  ports:
+    - "6379:6379"
+  volumes:
+    - redis-data:/data
+
+volumes:
+  redis-data:
 ```
 
 ### 2. HTTPS Requirement

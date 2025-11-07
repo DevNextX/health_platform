@@ -4,6 +4,7 @@ WeChat authentication manager. Handles WeChat Open Platform integration.
 import os
 import requests
 from typing import Optional, Dict, Any
+from urllib.parse import urlencode
 from flask import current_app
 
 
@@ -41,7 +42,7 @@ class WeChatManager:
             "state": state,
         }
         
-        query_string = "&".join([f"{k}={v}" for k, v in params.items()])
+        query_string = urlencode(params)
         return f"{self.QRCONNECT_URL}?{query_string}#wechat_redirect"
     
     def get_access_token(self, code: str) -> Optional[Dict[str, Any]]:

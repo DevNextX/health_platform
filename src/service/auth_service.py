@@ -14,6 +14,7 @@ from flask import current_app
 from ..manager.user_manager import UserManager
 from ..manager.member_manager import MemberManager
 from ..manager.wechat_manager import WeChatManager
+from ..manager.state_storage import create_state_storage
 from ..models import User
 from ..security import verify_password, hash_password, make_tokens
 from ..utils import error
@@ -23,18 +24,16 @@ user_manager = UserManager()
 member_manager = MemberManager()
 wechat_manager = WeChatManager()
 
-# Temporary storage for WeChat login states (in production, use Redis or similar)
-# TODO: Replace with Redis or database-backed storage for production use
-_wechat_states = {}  # {state: {timestamp, openid, ...}}
+# State storage for WeChat authentication (Redis-backed with in-memory fallback)
+_state_storage = None
 
 
-def _cleanup_expired_states():
-    """Remove expired state entries (older than 10 minutes)"""
-    now = datetime.utcnow()
-    expired = [k for k, v in _wechat_states.items() 
-               if (now - v.get("timestamp", now)).total_seconds() > 600]
-    for k in expired:
-        _wechat_states.pop(k, None)
+def _get_state_storage():
+    """Lazy initialization of state storage"""
+    global _state_storage
+    if _state_storage is None:
+        _state_storage = create_state_storage()
+    return _state_storage
 
 
 @auth_bp.route("/register", methods=["POST"])
@@ -138,6 +137,7 @@ def logout_all():
 
 
 @auth_bp.route("/wechat/login", methods=["GET"])
+@auth_bp.route("/wechat/login", methods=["GET"])
 @limiter.limit(lambda: current_app.config.get("RATELIMIT_AUTH", "5 per minute"))
 def wechat_login():
     """
@@ -145,14 +145,15 @@ def wechat_login():
     Returns the URL that frontend should use to display QR code
     """
     try:
-        _cleanup_expired_states()
+        storage = _get_state_storage()
+        storage.cleanup_expired()
         
         # Generate random state to prevent CSRF
         state = secrets.token_urlsafe(32)
-        _wechat_states[state] = {
-            "timestamp": datetime.utcnow(),
+        storage.set(state, {
+            "timestamp": datetime.utcnow().isoformat(),
             "used": False
-        }
+        })
         
         qrcode_url = wechat_manager.get_qrcode_url(state)
         
@@ -182,12 +183,16 @@ def wechat_callback():
     if not code or not state:
         return jsonify(error("400", "Missing code or state")), 400
     
+    storage = _get_state_storage()
+    
     # Verify state to prevent CSRF
-    if state not in _wechat_states or _wechat_states[state].get("used"):
+    state_data = storage.get(state)
+    if not state_data or state_data.get("used"):
         return jsonify(error("400", "Invalid or expired state")), 400
     
     # Mark state as used
-    _wechat_states[state]["used"] = True
+    state_data["used"] = True
+    storage.set(state, state_data)
     
     try:
         # Exchange code for access token
@@ -200,7 +205,8 @@ def wechat_callback():
             return jsonify(error("500", "No openid returned from WeChat")), 500
         
         # Store openid in state for bind endpoint
-        _wechat_states[state]["openid"] = openid
+        state_data["openid"] = openid
+        storage.set(state, state_data)
         
         # Check if user already exists
         existing_user = user_manager.get_user_by_wechat_openid(openid)
@@ -245,11 +251,13 @@ def wechat_bind():
     if not state or not email or not username:
         return jsonify(error("400", "Missing required fields: state, email, username")), 400
     
+    storage = _get_state_storage()
+    
     # Verify state
-    if state not in _wechat_states:
+    state_data = storage.get(state)
+    if not state_data:
         return jsonify(error("400", "Invalid or expired state")), 400
     
-    state_data = _wechat_states[state]
     openid = state_data.get("openid")
     
     if not openid:
@@ -272,11 +280,11 @@ def wechat_bind():
             try:
                 self_member = member_manager.get_or_create_self_member(user.id)
                 member_manager.update_member(self_member, height=data.get("height"))
-            except Exception:
-                pass
+            except Exception as e:
+                current_app.logger.error(f"Failed to create/update Self member height for user {user.id}: {e}")
         
         # Clean up state
-        _wechat_states.pop(state, None)
+        storage.delete(state)
         
         # Generate tokens and log user in
         tokens = make_tokens(identity=user.id, token_version=user.token_version)

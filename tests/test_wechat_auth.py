@@ -57,7 +57,6 @@ class TestWeChatAuth:
         """Test WeChat callback for an existing user"""
         # Create a user with WeChat OpenID
         with app.app_context():
-            from src.manager.user_manager import UserManager
             user_mgr = UserManager()
             user = user_mgr.create_wechat_user(
                 username='wechat_user',
