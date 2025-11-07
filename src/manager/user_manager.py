@@ -26,12 +26,45 @@ class UserManager:
             raise ValueError("EMAIL_EXISTS")
         return user
 
+    def create_wechat_user(self, username: str, email: str, wechat_openid: str,
+                           password: Optional[str] = None,
+                           age: Optional[int] = None, gender: Optional[str] = None, 
+                           weight: Optional[float] = None) -> User:
+        """
+        Create a new user with WeChat OpenID. Password is optional for WeChat-only users.
+        """
+        user = User()
+        user.username = username
+        user.email = email
+        user.wechat_openid = wechat_openid
+        user.password_hash = hash_password(password) if password else None
+        user.age = age
+        user.gender = gender
+        user.weight = weight
+        db.session.add(user)
+        try:
+            db.session.commit()
+        except IntegrityError as e:
+            db.session.rollback()
+            # Check which constraint was violated
+            error_msg = str(e.orig).lower()
+            if "email" in error_msg or "users.email" in error_msg:
+                raise ValueError("EMAIL_EXISTS")
+            elif "wechat_openid" in error_msg or "users.wechat_openid" in error_msg:
+                raise ValueError("WECHAT_OPENID_EXISTS")
+            raise ValueError("INTEGRITY_ERROR")
+        return user
+
     def get_user(self, user_id: int) -> Optional[User]:
         # Use modern Session.get API to avoid LegacyAPIWarning
         return db.session.get(User, user_id)
 
     def get_user_by_email(self, email: str) -> Optional[User]:
         return User.query.filter_by(email=email).first()
+
+    def get_user_by_wechat_openid(self, wechat_openid: str) -> Optional[User]:
+        """Get user by WeChat OpenID"""
+        return User.query.filter_by(wechat_openid=wechat_openid).first()
 
     def update_user(self, user: User, **fields) -> User:
         for k, v in fields.items():
