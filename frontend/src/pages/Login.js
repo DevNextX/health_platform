@@ -4,17 +4,19 @@
  */
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Form, Input, Button, Card, Typography, message, Space } from 'antd';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Card, Typography, message, Space, Divider } from 'antd';
+import { UserOutlined, LockOutlined, WechatOutlined } from '@ant-design/icons';
 import { authAPI } from '../services/api';
 import { setTokens } from '../utils/auth';
 import { useTranslation } from 'react-i18next';
+import WeChatLoginModal from '../components/WeChatLoginModal';
 
 const { Title, Text } = Typography;
 
 const Login = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [wechatModalVisible, setWechatModalVisible] = useState(false);
   const { t } = useTranslation();
 
   const onFinish = async (values) => {
@@ -32,6 +34,22 @@ const Login = () => {
       message.error(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleWeChatLogin = () => {
+    setWechatModalVisible(true);
+  };
+
+  const handleWeChatSuccess = ({ needBind, state }) => {
+    setWechatModalVisible(false);
+    if (needBind) {
+      // New user, redirect to bind email page
+      navigate('/bind-email', { state: { wechatState: state } });
+    } else {
+      // Existing user, redirect to dashboard
+      message.success(t('messages.login.success'));
+      navigate('/dashboard');
     }
   };
 
@@ -96,6 +114,24 @@ const Login = () => {
           </Form.Item>
         </Form>
 
+        <Divider plain>{t('login.or') || 'OR'}</Divider>
+
+        <Button
+          icon={<WechatOutlined />}
+          onClick={handleWeChatLogin}
+          block
+          size="large"
+          style={{
+            backgroundColor: '#09BB07',
+            borderColor: '#09BB07',
+            color: 'white',
+            marginBottom: 16
+          }}
+          data-testid="wechat-login-button"
+        >
+          {t('wechat.login_button') || 'Login with WeChat'}
+        </Button>
+
         <div style={{ textAlign: 'center' }}>
           <Space>
             <Text type="secondary">{t('login.toRegister')}</Text>
@@ -103,6 +139,12 @@ const Login = () => {
           </Space>
         </div>
       </Card>
+
+      <WeChatLoginModal
+        visible={wechatModalVisible}
+        onCancel={() => setWechatModalVisible(false)}
+        onSuccess={handleWeChatSuccess}
+      />
     </div>
   );
 };
