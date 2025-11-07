@@ -18,6 +18,7 @@ import 'dayjs/locale/en';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import BindEmail from './pages/BindEmail';
 import Dashboard from './pages/Dashboard';
 import HealthRecords from './pages/HealthRecords';
 import Profile from './pages/Profile';
@@ -89,6 +90,7 @@ function App() {
                 <Register />
               </PublicRoute>
             } />
+            <Route path="/bind-email" element={<BindEmail />} />
             
             {/* Protected Routes */}
             <Route path="/" element={

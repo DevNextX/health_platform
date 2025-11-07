@@ -82,6 +82,10 @@ export const authAPI = {
   // logout requires refresh token; allow passing custom config with headers
   logout: (config) => api.post('/api/v1/auth/logout', {}, config),
   logoutAll: () => api.post('/api/v1/auth/logout-all'),
+  // WeChat login APIs
+  wechatLogin: () => api.get('/api/v1/auth/wechat/login'),
+  wechatCallback: (data) => api.post('/api/v1/auth/wechat/callback', data),
+  wechatBind: (data) => api.post('/api/v1/auth/wechat/bind', data),
 };
 
 // User APIs
