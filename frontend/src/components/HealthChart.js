@@ -104,8 +104,38 @@ const HealthChart = ({ records = [] }) => {
     const n = Number(v);
     return Number.isFinite(n) ? n : null;
   };
-  const systolicData = filteredRecords.map(record => toNumOrNull(record.systolic));
-  const diastolicData = filteredRecords.map(record => toNumOrNull(record.diastolic));
+  
+  // Check if blood pressure is normal
+  const isNormalBP = (systolic, diastolic) => {
+    if (systolic === null || diastolic === null) return false;
+    return systolic >= 90 && systolic <= 140 && diastolic >= 60 && diastolic <= 90;
+  };
+  
+  // Prepare data with color information for each point
+  const systolicData = filteredRecords.map(record => {
+    const systolic = toNumOrNull(record.systolic);
+    const diastolic = toNumOrNull(record.diastolic);
+    const isNormal = isNormalBP(systolic, diastolic);
+    return {
+      value: systolic,
+      itemStyle: {
+        color: isNormal ? '#1890ff' : '#ff4d4f' // Blue for normal, red for abnormal
+      }
+    };
+  });
+  
+  const diastolicData = filteredRecords.map(record => {
+    const systolic = toNumOrNull(record.systolic);
+    const diastolic = toNumOrNull(record.diastolic);
+    const isNormal = isNormalBP(systolic, diastolic);
+    return {
+      value: diastolic,
+      itemStyle: {
+        color: isNormal ? '#52c41a' : '#ff4d4f' // Green for normal, red for abnormal
+      }
+    };
+  });
+  
   const heartRateData = filteredRecords.map(record => toNumOrNull(record.heart_rate));
 
   const option = {
@@ -176,18 +206,14 @@ const HealthChart = ({ records = [] }) => {
         type: 'line',
         yAxisIndex: 0,
         data: systolicData,
-        itemStyle: {
-          color: '#ff4d4f',
-        },
         lineStyle: {
-          color: '#ff4d4f',
+          color: '#1890ff', // Blue line for systolic
         },
         connectNulls: false,
         symbol: 'circle',
         symbolSize: 6,
         emphasis: {
           itemStyle: {
-            borderColor: '#ff4d4f',
             borderWidth: 2,
           },
         },
@@ -197,18 +223,14 @@ const HealthChart = ({ records = [] }) => {
         type: 'line',
         yAxisIndex: 0,
         data: diastolicData,
-        itemStyle: {
-          color: '#52c41a',
-        },
         lineStyle: {
-          color: '#52c41a',
+          color: '#52c41a', // Green line for diastolic
         },
         connectNulls: false,
         symbol: 'circle',
         symbolSize: 6,
         emphasis: {
           itemStyle: {
-            borderColor: '#52c41a',
             borderWidth: 2,
           },
         },
