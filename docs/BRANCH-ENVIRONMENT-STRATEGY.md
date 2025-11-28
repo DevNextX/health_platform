@@ -4,6 +4,8 @@
 ## Overview
 This document outlines the best practices for managing branches, environments, and CI/CD configurations for the Health Platform project.
 
+> **Note**: The default workflow for day-to-day development is the lightweight trunk strategy described in `CONTRIBUTING.md` (feature branches → `main` → tag-based production releases). The patterns below are optional extensions when the team needs long-lived environment branches or more complex CI/CD segregation.
+
 ## Current Architecture Analysis
 
 ### 1. Single Workflow Strategy (Current Implementation)
