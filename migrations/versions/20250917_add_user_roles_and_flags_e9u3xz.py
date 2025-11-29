@@ -41,6 +41,7 @@ def upgrade():
             batch_op.alter_column('role', server_default=None)
             batch_op.alter_column('must_change_password', server_default=None)
     except Exception:
+        # Ignore if the column does not exist or cannot be altered; migration may be re-run.
         pass
 
             # Ignore if the column does not exist or cannot be dropped; migration may be re-run.
