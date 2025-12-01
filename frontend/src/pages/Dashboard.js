@@ -9,6 +9,7 @@ import { healthAPI } from '../services/api';
 import HealthChart from '../components/HealthChart';
 import { useMember } from '../context/MemberContext';
 import { useTranslation } from 'react-i18next';
+import { parseServerTime } from '../utils/date';
 
 const { Title } = Typography;
 
@@ -71,7 +72,7 @@ const Dashboard = () => {
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     
     const thisWeekRecords = records.filter(record => 
-      new Date(record.timestamp) >= oneWeekAgo
+      parseServerTime(record.timestamp).toDate() >= oneWeekAgo
     );
 
     // Calculate averages (coerce values to numbers and validate)

@@ -33,6 +33,55 @@ class TestHealthEndpoints:
         assert data['note'] == 'Morning measurement'
         assert 'id' in data
         assert 'created_at' in data
+
+    def test_create_health_record_validation_ranges(self, client, auth_headers):
+        access_headers = auth_headers['access']
+        # systolic out of range (below)
+        resp = client.post('/api/v1/health', json={
+            'systolic': 29, 'diastolic': 80
+        }, headers=access_headers)
+        assert resp.status_code == 400
+        body = resp.get_json()
+        assert body['code'] == '400'
+        assert 'systolic' in body['details']
+        # diastolic out of range (above)
+        resp = client.post('/api/v1/health', json={
+            'systolic': 120, 'diastolic': 251
+        }, headers=access_headers)
+        assert resp.status_code == 400
+        body = resp.get_json()
+        assert 'diastolic' in body['details']
+        # heart_rate optional; out of range -> 400
+        resp = client.post('/api/v1/health', json={
+            'systolic': 120, 'diastolic': 80, 'heart_rate': 151
+        }, headers=access_headers)
+        assert resp.status_code == 400
+        body = resp.get_json()
+        assert 'heart_rate' in body['details']
+
+    def test_create_health_record_relation_check(self, client, auth_headers):
+        access_headers = auth_headers['access']
+        # systolic must be greater than diastolic
+        resp = client.post('/api/v1/health', json={
+            'systolic': 80, 'diastolic': 80
+        }, headers=access_headers)
+        assert resp.status_code == 400
+        body = resp.get_json()
+        assert '_schema' in body['details']
+
+    def test_create_health_record_format_errors(self, client, auth_headers):
+        access_headers = auth_headers['access']
+        # decimals not allowed
+        resp = client.post('/api/v1/health', json={
+            'systolic': '120.5', 'diastolic': 80
+        }, headers=access_headers)
+        assert resp.status_code == 400
+        # non-digit string not allowed
+        resp = client.post('/api/v1/health', json={
+            'systolic': 'abc', 'diastolic': '70'
+        }, headers=access_headers)
+        assert resp.status_code == 400
+
     
     def test_create_health_record_unauthorized(self, client):
         """Test creating health record without authorization"""
@@ -205,6 +254,19 @@ class TestHealthEndpoints:
         assert data['systolic'] == 125
         assert data['diastolic'] == 80  # Should remain unchanged
         assert data['note'] == 'Updated note'
+
+    def test_update_health_record_validation(self, client, auth_headers):
+        access_headers = auth_headers['access']
+        create_response = client.post('/api/v1/health', json={'systolic': 120, 'diastolic': 80}, headers=access_headers)
+        rec_id = create_response.get_json()['id']
+        # make diastolic invalid range
+        resp = client.put(f'/api/v1/health/{rec_id}', json={'diastolic': 29}, headers=access_headers)
+        assert resp.status_code == 400
+        # relation invalid (set systolic below current diastolic)
+        resp = client.put(f'/api/v1/health/{rec_id}', json={'systolic': 79}, headers=access_headers)
+        assert resp.status_code == 400
+        body = resp.get_json()
+        assert '_schema' in body['details']
     
     def test_delete_health_record(self, client, auth_headers):
         """Test deleting a health record"""

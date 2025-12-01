@@ -241,8 +241,7 @@ test.describe('Health Records Management', () => {
   await expect(addBtnHR5.first()).toBeVisible({ timeout: 10000 });
   await addBtnHR5.first().click();
     
-    // Check validation messages for out of range values
-  await expect(page.locator('text=收缩压范围：50-250 mmHg')).toBeVisible();
-  await expect(page.locator('text=舒张压范围：50-250 mmHg')).toBeVisible();
+    // Check validation messages for out of range values (updated rules)
+    await expect(page.locator('text=血压值必须在 30-250 mmHg 之间')).toBeVisible();
   });
 });
