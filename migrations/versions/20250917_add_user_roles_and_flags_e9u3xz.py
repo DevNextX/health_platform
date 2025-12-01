@@ -52,6 +52,7 @@ def downgrade():
             batch_op.drop_column('last_login_at')
             # Ignore if the column does not exist or cannot be dropped; migration may be re-run.
         except Exception:
+            # Ignore if the column does not exist or cannot be dropped; migration may be re-run.
             pass
         try:
             batch_op.drop_column('must_change_password')
