@@ -42,7 +42,10 @@ def register():
             try:
                 self_member = member_manager.get_or_create_self_member(user.id)
                 member_manager.update_member(self_member, height=data.get("height"))
-            except Exception:
+            except Exception as e:
+                # Height update failure is non-critical; ignore error so user registration proceeds.
+                import logging
+                logging.warning(f"Failed to update member height during registration: {e}")
                 pass
     except ValueError as e:
         if str(e) == "EMAIL_EXISTS":
