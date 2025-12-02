@@ -20,7 +20,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from '@ant-design/icons';
-import { TeamOutlined, IdcardOutlined, SettingOutlined } from '@ant-design/icons';
+import { TeamOutlined, IdcardOutlined, SettingOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import { authAPI, userAPI } from '../services/api';
 import { clearTokens, getUserIdFromToken, getRoleFromToken, getMustChangeFromToken } from '../utils/auth';
 import MemberSelector from './MemberSelector';
@@ -90,20 +90,29 @@ const Layout = () => {
     {
       key: '/settings',
   icon: <SettingOutlined />,
-      label: t('nav.settings'),
+      label: t('nav.userSetting'),
       onClick: () => navigate('/settings'),
     },
     ...( (() => {
       const role = getRoleFromToken();
+      const items = [];
       if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
-        return [{
+        items.push({
           key: '/admin/users',
           icon: <TeamOutlined />,
           label: t('nav.adminUsers') || '用户管理',
           onClick: () => navigate('/admin/users'),
-        }];
+        });
       }
-      return [];
+      if (role === 'SUPER_ADMIN') {
+        items.push({
+          key: '/super-admin/settings',
+          icon: <SafetyCertificateOutlined />,
+          label: t('nav.superAdminSetting') || 'Super Admin Setting',
+          onClick: () => navigate('/super-admin/settings'),
+        });
+      }
+      return items;
     })() ),
   ];
 
