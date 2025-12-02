@@ -18,6 +18,7 @@ import { DownloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { parseServerTime } from '../utils/date';
+import { useThresholds } from '../context/ThresholdContext';
 
 const { Option } = Select;
 
@@ -25,10 +26,9 @@ const SYSTOLIC_COLOR = '#1890ff';
 const DIASTOLIC_COLOR = '#52c41a';
 const HEART_RATE_COLOR = '#722ed1';
 const WARNING_COLOR = '#ff4d4f';
+const BORDERLINE_COLOR = '#faad14';
 const DEFAULT_SYMBOL_SIZE = 6;
 const HIGHLIGHT_SYMBOL_SIZE = 9;
-const NORMAL_SYSTOLIC_THRESHOLD = 120;
-const NORMAL_DIASTOLIC_THRESHOLD = 80;
 
 // Register ECharts components
 echarts.use([
@@ -42,6 +42,7 @@ echarts.use([
 
 const HealthChart = ({ records = [] }) => {
   const { t } = useTranslation();
+  const { classifyRecord } = useThresholds();
   const [timeRange, setTimeRange] = useState('week'); // week, month, all
   const [filteredRecords, setFilteredRecords] = useState([]);
 
@@ -118,25 +119,35 @@ const HealthChart = ({ records = [] }) => {
   const diastolicData = filteredRecords.map(record => toNumOrNull(record.diastolic));
   const heartRateData = filteredRecords.map(record => toNumOrNull(record.heart_rate));
 
-  const abnormalMap = filteredRecords.map((record, index) => {
+  // Classify records using dynamic thresholds from context
+  const statusMap = filteredRecords.map((record, index) => {
     const systolicValue = systolicData[index];
     const diastolicValue = diastolicData[index];
-    return (
-      (typeof systolicValue === 'number' && systolicValue >= NORMAL_SYSTOLIC_THRESHOLD) ||
-      (typeof diastolicValue === 'number' && diastolicValue >= NORMAL_DIASTOLIC_THRESHOLD)
-    );
+    const hrValue = heartRateData[index];
+    if (systolicValue === null || diastolicValue === null) {
+      return 'unknown';
+    }
+    return classifyRecord(systolicValue, diastolicValue, hrValue);
   });
+
+  const getColorForStatus = (status) => {
+    if (status === 'abnormal') return WARNING_COLOR;
+    if (status === 'borderline') return BORDERLINE_COLOR;
+    return null;
+  };
 
   const systolicSeriesData = systolicData.map((value, index) => {
     if (value === null) {
       return value;
     }
-    if (!abnormalMap[index]) {
+    const status = statusMap[index];
+    const color = getColorForStatus(status);
+    if (!color) {
       return value;
     }
     return {
       value,
-      itemStyle: { color: WARNING_COLOR },
+      itemStyle: { color },
       symbolSize: HIGHLIGHT_SYMBOL_SIZE,
     };
   });
@@ -145,12 +156,14 @@ const HealthChart = ({ records = [] }) => {
     if (value === null) {
       return value;
     }
-    if (!abnormalMap[index]) {
+    const status = statusMap[index];
+    const color = getColorForStatus(status);
+    if (!color) {
       return value;
     }
     return {
       value,
-      itemStyle: { color: WARNING_COLOR },
+      itemStyle: { color },
       symbolSize: HIGHLIGHT_SYMBOL_SIZE,
     };
   });

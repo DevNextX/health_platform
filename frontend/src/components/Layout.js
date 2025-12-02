@@ -105,6 +105,18 @@ const Layout = () => {
       }
       return [];
     })() ),
+    ...( (() => {
+      const role = getRoleFromToken();
+      if (role === 'SUPER_ADMIN') {
+        return [{
+          key: '/super-admin/settings',
+          icon: <SettingOutlined />,
+          label: t('nav.superAdminSettings') || 'Super Admin Settings',
+          onClick: () => navigate('/super-admin/settings'),
+        }];
+      }
+      return [];
+    })() ),
   ];
 
   const handleLogout = async () => {
