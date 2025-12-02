@@ -76,3 +76,34 @@ class HealthRecord(db.Model):
     tags = db.Column(db.Text)  # store as JSON string
     note = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), nullable=False)
+
+
+# Threshold Configuration models for Super Admin governance
+class ThresholdConfig(db.Model):
+    """Stores global threshold configuration for health status determination.
+
+    Fields:
+        config: JSON with systolic_min, systolic_max, diastolic_min, diastolic_max, heart_rate_min, heart_rate_max
+        version: Incremental version number
+        status: 'draft' or 'active'
+    """
+    __tablename__ = "threshold_configs"
+    id = db.Column(db.Integer, primary_key=True)
+    config = db.Column(db.Text, nullable=False)  # JSON string
+    version = db.Column(db.Integer, nullable=False, default=1)
+    status = db.Column(db.String(16), nullable=False, default="draft")  # draft/active
+    created_by_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    published_at = db.Column(db.DateTime, nullable=True)
+
+
+class ThresholdAuditLog(db.Model):
+    """Audit log for threshold configuration changes."""
+    __tablename__ = "threshold_audit_logs"
+    id = db.Column(db.Integer, primary_key=True)
+    config_id = db.Column(db.Integer, db.ForeignKey("threshold_configs.id"), nullable=False)
+    action = db.Column(db.String(32), nullable=False)  # created/published/updated
+    operator_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    old_config = db.Column(db.Text, nullable=True)  # JSON string of previous config
+    new_config = db.Column(db.Text, nullable=False)  # JSON string of new config
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), nullable=False)
