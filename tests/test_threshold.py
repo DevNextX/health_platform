@@ -11,6 +11,17 @@ def login(client, email, password):
     return client.post('/api/v1/auth/login', json={'email': email, 'password': password})
 
 
+# Test fixture: valid threshold configuration
+VALID_THRESHOLD_CONFIG = {
+    "systolic_min": 90,
+    "systolic_max": 120,
+    "diastolic_min": 60,
+    "diastolic_max": 90,
+    "heart_rate_min": 60,
+    "heart_rate_max": 90,
+}
+
+
 class TestThresholdManager:
     """Test threshold manager validation logic."""
 
@@ -18,15 +29,7 @@ class TestThresholdManager:
         """Test validation with valid config."""
         with app.app_context():
             tm = ThresholdManager()
-            config = {
-                "systolic_min": 90,
-                "systolic_max": 120,
-                "diastolic_min": 60,
-                "diastolic_max": 90,
-                "heart_rate_min": 60,
-                "heart_rate_max": 90,
-            }
-            is_valid, errors = tm.validate_config(config)
+            is_valid, errors = tm.validate_config(VALID_THRESHOLD_CONFIG.copy())
             assert is_valid is True
             assert len(errors) == 0
 
@@ -88,14 +91,7 @@ class TestThresholdAPI:
     def test_create_draft_requires_super_admin(self, client, auth_headers):
         """Test that creating a draft requires SUPER_ADMIN role."""
         access_headers = auth_headers['access']
-        resp = client.post('/api/v1/superadmin/thresholds/draft', json={
-            "systolic_min": 90,
-            "systolic_max": 120,
-            "diastolic_min": 60,
-            "diastolic_max": 90,
-            "heart_rate_min": 60,
-            "heart_rate_max": 90,
-        }, headers=access_headers)
+        resp = client.post('/api/v1/superadmin/thresholds/draft', json=VALID_THRESHOLD_CONFIG, headers=access_headers)
         assert resp.status_code == 403
 
     def test_super_admin_create_draft(self, client):
@@ -112,15 +108,16 @@ class TestThresholdAPI:
         assert sa_login.status_code == 200
         sa_access = {'Authorization': f"Bearer {sa_login.get_json()['access_token']}"}
 
-        # Create draft
-        resp = client.post('/api/v1/superadmin/thresholds/draft', json={
+        # Create draft with custom values
+        custom_config = {
             "systolic_min": 85,
             "systolic_max": 130,
             "diastolic_min": 55,
             "diastolic_max": 85,
             "heart_rate_min": 55,
             "heart_rate_max": 100,
-        }, headers=sa_access)
+        }
+        resp = client.post('/api/v1/superadmin/thresholds/draft', json=custom_config, headers=sa_access)
         assert resp.status_code == 201
         data = resp.get_json()
         assert data['status'] == 'draft'
@@ -237,14 +234,7 @@ class TestThresholdAPI:
         sa_access = {'Authorization': f"Bearer {sa_login.get_json()['access_token']}"}
 
         # Create draft
-        client.post('/api/v1/superadmin/thresholds/draft', json={
-            "systolic_min": 90,
-            "systolic_max": 120,
-            "diastolic_min": 60,
-            "diastolic_max": 90,
-            "heart_rate_min": 60,
-            "heart_rate_max": 90,
-        }, headers=sa_access)
+        client.post('/api/v1/superadmin/thresholds/draft', json=VALID_THRESHOLD_CONFIG, headers=sa_access)
 
         # Check audit logs
         logs_resp = client.get('/api/v1/superadmin/thresholds/audit-logs', headers=sa_access)
@@ -286,14 +276,7 @@ class TestThresholdAPI:
         sa_access = {'Authorization': f"Bearer {sa_login.get_json()['access_token']}"}
 
         # Create a draft to have at least one audit log
-        client.post('/api/v1/superadmin/thresholds/draft', json={
-            "systolic_min": 90,
-            "systolic_max": 120,
-            "diastolic_min": 60,
-            "diastolic_max": 90,
-            "heart_rate_min": 60,
-            "heart_rate_max": 90,
-        }, headers=sa_access)
+        client.post('/api/v1/superadmin/thresholds/draft', json=VALID_THRESHOLD_CONFIG, headers=sa_access)
 
         # Export CSV
         resp = client.get('/api/v1/superadmin/thresholds/audit-logs/export', headers=sa_access)

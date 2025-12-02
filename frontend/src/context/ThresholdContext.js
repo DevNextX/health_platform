@@ -55,7 +55,7 @@ export const ThresholdProvider = ({ children }) => {
   const classifyRecord = useCallback((systolic, diastolic, heartRate) => {
     const sysHealthy = systolic >= thresholds.systolic_min && systolic <= thresholds.systolic_max;
     const diaHealthy = diastolic >= thresholds.diastolic_min && diastolic <= thresholds.diastolic_max;
-    const hrHealthy = heartRate == null || (heartRate >= thresholds.heart_rate_min && heartRate <= thresholds.heart_rate_max);
+    const hrHealthy = heartRate === null || heartRate === undefined || (heartRate >= thresholds.heart_rate_min && heartRate <= thresholds.heart_rate_max);
 
     if (sysHealthy && diaHealthy && hrHealthy) {
       return 'healthy';
@@ -71,7 +71,7 @@ export const ThresholdProvider = ({ children }) => {
 
     const sysBorder = isBorderline(systolic, thresholds.systolic_min, thresholds.systolic_max);
     const diaBorder = isBorderline(diastolic, thresholds.diastolic_min, thresholds.diastolic_max);
-    const hrBorder = heartRate == null || isBorderline(heartRate, thresholds.heart_rate_min, thresholds.heart_rate_max);
+    const hrBorder = heartRate === null || heartRate === undefined || isBorderline(heartRate, thresholds.heart_rate_min, thresholds.heart_rate_max);
 
     if (sysBorder && diaBorder && hrBorder) {
       return 'borderline';
