@@ -20,6 +20,20 @@ manager = HealthManager()
 member_mgr = MemberManager()
 
 
+def _serialize_record(rec):
+    """Serialize a HealthRecord to dict."""
+    return {
+        "id": rec.id,
+        "systolic": rec.systolic,
+        "diastolic": rec.diastolic,
+        "heart_rate": rec.heart_rate,
+        "timestamp": _format_timestamp(rec.timestamp),
+        "tags": json.loads(rec.tags) if rec.tags else [],
+        "note": rec.note,
+        "created_at": _format_timestamp(rec.created_at)
+    }
+
+
 def _parse_int(value):
     if value is None:
         raise TypeError("missing")
@@ -186,17 +200,10 @@ def create_record():
     from ..extensions import db
     db.session.add(rs)
     db.session.commit()
-    return jsonify({
-        "id": rec.id,
-        "systolic": rec.systolic,
-        "diastolic": rec.diastolic,
-        "heart_rate": rec.heart_rate,
-        "timestamp": _format_timestamp(rec.timestamp),
-        "tags": tags,
-        "note": rec.note,
-        "created_at": _format_timestamp(rec.created_at),
-        "subject_member_id": subject_member_id,
-    }), 201
+    
+    result = _serialize_record(rec)
+    result["subject_member_id"] = subject_member_id
+    return jsonify(result), 201
 
 
 @health_bp.route("", methods=["GET"])
@@ -282,16 +289,12 @@ def list_records():
     # Optionally include subject_member_id by querying mapping
     # To keep it lightweight, include only when a single member filter is active
     include_subject = subject_member_id is not None
-    data = [{
-        "id": r.id,
-        "systolic": r.systolic,
-        "diastolic": r.diastolic,
-        "heart_rate": r.heart_rate,
-        "timestamp": _format_timestamp(r.timestamp),
-        "tags": json.loads(r.tags) if r.tags else [],
-        "note": r.note,
-        **({"subject_member_id": subject_member_id} if include_subject else {}),
-    } for r in items]
+    data = []
+    for r in items:
+        record_data = _serialize_record(r)
+        if include_subject:
+            record_data["subject_member_id"] = subject_member_id
+        data.append(record_data)
     return jsonify({"records": data, "pagination": make_pagination(page, size, total)}), 200
 
 
@@ -450,16 +453,7 @@ def get_record(rec_id: int):
     rec = manager.get(user_id=user_id, rec_id=rec_id)
     if not rec:
         return jsonify(error("404", "Record not found")), 404
-    return jsonify({
-        "id": rec.id,
-        "systolic": rec.systolic,
-        "diastolic": rec.diastolic,
-        "heart_rate": rec.heart_rate,
-        "timestamp": _format_timestamp(rec.timestamp),
-        "tags": json.loads(rec.tags) if rec.tags else [],
-        "note": rec.note,
-        "created_at": _format_timestamp(rec.created_at),
-    }), 200
+    return jsonify(_serialize_record(rec)), 200
 
 
 @health_bp.route("/<int:rec_id>", methods=["PUT"])
@@ -485,16 +479,10 @@ def update_record(rec_id: int):
     if "note" in data:
         rec.note = data.get("note")
     manager.update(rec)
-    return jsonify({
-        "id": rec.id,
-        "systolic": rec.systolic,
-        "diastolic": rec.diastolic,
-        "heart_rate": rec.heart_rate,
-        "tags": json.loads(rec.tags) if rec.tags else [],
-        "note": rec.note,
-        # Timezone-aware UTC now, serialized with trailing 'Z'
-        "updated_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
-    }), 200
+    
+    result = _serialize_record(rec)
+    result["updated_at"] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+    return jsonify(result), 200
 
 
 @health_bp.route("/<int:rec_id>", methods=["DELETE"])

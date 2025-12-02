@@ -68,3 +68,34 @@ def auth_headers(client):
         'refresh': {'Authorization': f'Bearer {refresh_token}'},
         'tokens': data
     }
+
+
+@pytest.fixture
+def super_admin_headers(client):
+    """Create a super admin user and return auth headers."""
+    from src.models import User
+    from src.extensions import db
+    from src.security import hash_password
+    
+    # Create super admin user directly in database
+    super_admin = User(
+        username='superadmin',
+        email='superadmin@example.com',
+        password_hash=hash_password('SuperAdmin123!'),
+        role='SUPER_ADMIN',
+        age=30,
+        gender='other'
+    )
+    db.session.add(super_admin)
+    db.session.commit()
+    
+    # Login to get tokens
+    response = client.post('/api/v1/auth/login', json={
+        'email': 'superadmin@example.com',
+        'password': 'SuperAdmin123!'
+    })
+    
+    data = response.get_json()
+    access_token = data['access_token']
+    
+    return {'Authorization': f'Bearer {access_token}'}
