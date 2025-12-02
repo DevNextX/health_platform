@@ -128,4 +128,16 @@ export const adminAPI = {
   resetPassword: (userId) => api.post(`/api/v1/admin/users/${userId}/reset-password`, {}),
 };
 
+// Super Admin APIs (Threshold Configuration)
+export const superAdminAPI = {
+  getActiveThresholds: () => api.get('/api/v1/superadmin/thresholds/active'),
+  getDraftThreshold: () => api.get('/api/v1/superadmin/thresholds/draft'),
+  createDraft: (config) => api.post('/api/v1/superadmin/thresholds/draft', config),
+  previewImpact: (config) => api.post('/api/v1/superadmin/thresholds/preview', config),
+  publishDraft: (configId) => api.post(`/api/v1/superadmin/thresholds/${configId}/publish`),
+  resetToDefault: () => api.post('/api/v1/superadmin/thresholds/reset'),
+  getAuditLogs: (params) => api.get('/api/v1/superadmin/thresholds/audit-logs', { params }),
+  exportAuditLogs: () => api.get('/api/v1/superadmin/thresholds/audit-logs/export', { responseType: 'blob' }),
+};
+
 export default api;

@@ -29,6 +29,7 @@ import {
 import dayjs from 'dayjs';
 import { healthAPI } from '../services/api';
 import { useMember } from '../context/MemberContext';
+import { useThresholds } from '../context/ThresholdContext';
 import TagSelector from '../components/TagSelector';
 import { tagValueToLabel } from '../utils/tagI18n';
 import { useTranslation } from 'react-i18next';
@@ -39,6 +40,7 @@ const { Title } = Typography;
 
 const HealthRecords = () => {
   const { t } = useTranslation();
+  const { classifyRecord } = useThresholds();
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -210,6 +212,20 @@ const HealthRecords = () => {
 
   // Removed unused helper removeTagFilter - not used by current UI
 
+  // Helper to get status tag color and label
+  const getStatusInfo = (status) => {
+    switch (status) {
+      case 'healthy':
+        return { color: 'green', label: t('health.status.healthy') || 'Healthy' };
+      case 'borderline':
+        return { color: 'orange', label: t('health.status.borderline') || 'Borderline' };
+      case 'abnormal':
+        return { color: 'red', label: t('health.status.abnormal') || 'Abnormal' };
+      default:
+        return { color: 'default', label: '-' };
+    }
+  };
+
   const columns = [
     {
       title: t('health.columns.time'),
@@ -234,6 +250,16 @@ const HealthRecords = () => {
       dataIndex: 'heart_rate',
       key: 'heart_rate',
       render: (heartRate) => heartRate ? `${heartRate} bpm` : '-',
+    },
+    {
+      title: t('health.columns.status') || 'Status',
+      key: 'status',
+      render: (_, record) => {
+        if (!record.systolic || !record.diastolic) return '-';
+        const status = classifyRecord(record.systolic, record.diastolic, record.heart_rate);
+        const { color, label } = getStatusInfo(status);
+        return <Tag color={color}>{label}</Tag>;
+      },
     },
     {
       title: t('health.columns.tags'),
