@@ -27,33 +27,41 @@ dayjs.extend(localizedFormat);
 const DEFAULT_FORM_VALUES = {
   systolicLow: 90,
   systolicHigh: 120,
+  systolicBorderline: 140,
   diastolicLow: 60,
   diastolicHigh: 80,
+  diastolicBorderline: 90,
   heartRateLow: 60,
   heartRateHigh: 90,
 };
 
 const deriveFormValues = (data) => {
-  const nested = data?.thresholds || {};
-  const payload = data?.profile || {};
+  // Backend returns: { id, payload: {systolic: {min, max, borderline_max}, ...}, version, updated_at }
+  const payload = data?.payload || {};
 
-  const systolicHealthy = nested?.systolic
-    ? [nested.systolic.lower, nested.systolic.upper]
-    : payload.systolic_healthy;
-  const diastolicHealthy = nested?.diastolic
-    ? [nested.diastolic.lower, nested.diastolic.upper]
-    : payload.diastolic_healthy;
-  const heartRateRange = nested?.heart_rate
-    ? [nested.heart_rate.lower, nested.heart_rate.upper]
-    : [payload.heart_rate_min, payload.heart_rate_max];
+  // Extract systolic ranges
+  const systolicMin = payload.systolic?.min ?? DEFAULT_FORM_VALUES.systolicLow;
+  const systolicMax = payload.systolic?.max ?? DEFAULT_FORM_VALUES.systolicHigh;
+  const systolicBorderline = payload.systolic?.borderline_max ?? DEFAULT_FORM_VALUES.systolicBorderline;
+
+  // Extract diastolic ranges
+  const diastolicMin = payload.diastolic?.min ?? DEFAULT_FORM_VALUES.diastolicLow;
+  const diastolicMax = payload.diastolic?.max ?? DEFAULT_FORM_VALUES.diastolicHigh;
+  const diastolicBorderline = payload.diastolic?.borderline_max ?? DEFAULT_FORM_VALUES.diastolicBorderline;
+
+  // Extract heart rate ranges
+  const heartRateMin = payload.heart_rate?.min ?? DEFAULT_FORM_VALUES.heartRateLow;
+  const heartRateMax = payload.heart_rate?.max ?? DEFAULT_FORM_VALUES.heartRateHigh;
 
   return {
-    systolicLow: systolicHealthy?.[0] ?? DEFAULT_FORM_VALUES.systolicLow,
-    systolicHigh: systolicHealthy?.[1] ?? DEFAULT_FORM_VALUES.systolicHigh,
-    diastolicLow: diastolicHealthy?.[0] ?? DEFAULT_FORM_VALUES.diastolicLow,
-    diastolicHigh: diastolicHealthy?.[1] ?? DEFAULT_FORM_VALUES.diastolicHigh,
-    heartRateLow: heartRateRange?.[0] ?? DEFAULT_FORM_VALUES.heartRateLow,
-    heartRateHigh: heartRateRange?.[1] ?? DEFAULT_FORM_VALUES.heartRateHigh,
+    systolicLow: systolicMin,
+    systolicHigh: systolicMax,
+    systolicBorderline: systolicBorderline,
+    diastolicLow: diastolicMin,
+    diastolicHigh: diastolicMax,
+    diastolicBorderline: diastolicBorderline,
+    heartRateLow: heartRateMin,
+    heartRateHigh: heartRateMax,
   };
 };
 
@@ -237,20 +245,41 @@ const SuperAdminSettings = () => {
     },
   });
 
+  const createBorderlineRule = (upperKey, type) => ({ getFieldValue }) => ({
+    validator(_, value) {
+      const upper = getFieldValue(upperKey);
+      if (value === undefined || value === null) {
+        return Promise.resolve();
+      }
+      if (upper === undefined || upper === null) {
+        return Promise.resolve();
+      }
+      if (value <= upper) {
+        return Promise.reject(new Error(t('superAdmin.threshold.validation.borderlineOrder')));
+      }
+      const min = 30;
+      const max = 250;
+      if (value < min || value > max) {
+        return Promise.reject(new Error(t('superAdmin.threshold.validation.range')));
+      }
+      return Promise.resolve();
+    },
+  });
+
   const buildPayload = (values) => ({
-    thresholds: {
-      systolic: {
-        lower: values.systolicLow,
-        upper: values.systolicHigh,
-      },
-      diastolic: {
-        lower: values.diastolicLow,
-        upper: values.diastolicHigh,
-      },
-      heart_rate: {
-        lower: values.heartRateLow,
-        upper: values.heartRateHigh,
-      },
+    systolic: {
+      min: values.systolicLow,
+      max: values.systolicHigh,
+      borderline_max: values.systolicBorderline,
+    },
+    diastolic: {
+      min: values.diastolicLow,
+      max: values.diastolicHigh,
+      borderline_max: values.diastolicBorderline,
+    },
+    heart_rate: {
+      min: values.heartRateLow,
+      max: values.heartRateHigh,
     },
   });
 
@@ -313,7 +342,7 @@ const SuperAdminSettings = () => {
         description={t('superAdmin.setting.notice')}
       />
 
-      <Card bordered={false} style={{ background: '#f7f9fc' }}>
+      <Card variant="borderless" style={{ background: '#f7f9fc' }}>
         <Typography.Paragraph style={{ marginBottom: 0 }}>
           {t('superAdmin.threshold.description')}
         </Typography.Paragraph>
@@ -333,7 +362,7 @@ const SuperAdminSettings = () => {
                   {t('superAdmin.threshold.systolic')}
                 </Typography.Title>
                 <Row gutter={16}>
-                  <Col span={12}>
+                  <Col span={8}>
                     <Form.Item
                       name="systolicLow"
                       label={t('superAdmin.threshold.lower')}
@@ -342,11 +371,20 @@ const SuperAdminSettings = () => {
                       <InputNumber min={30} max={250} style={{ width: '100%' }} />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col span={8}>
                     <Form.Item
                       name="systolicHigh"
                       label={t('superAdmin.threshold.upper')}
                       rules={[{ required: true, message: t('superAdmin.threshold.required') }, createUpperRule('systolicLow', 'bp')]}
+                    >
+                      <InputNumber min={30} max={250} style={{ width: '100%' }} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item
+                      name="systolicBorderline"
+                      label={t('superAdmin.threshold.borderline')}
+                      rules={[{ required: true, message: t('superAdmin.threshold.required') }, createBorderlineRule('systolicHigh', 'bp')]}
                     >
                       <InputNumber min={30} max={250} style={{ width: '100%' }} />
                     </Form.Item>
@@ -359,7 +397,7 @@ const SuperAdminSettings = () => {
                   {t('superAdmin.threshold.diastolic')}
                 </Typography.Title>
                 <Row gutter={16}>
-                  <Col span={12}>
+                  <Col span={8}>
                     <Form.Item
                       name="diastolicLow"
                       label={t('superAdmin.threshold.lower')}
@@ -368,11 +406,20 @@ const SuperAdminSettings = () => {
                       <InputNumber min={30} max={250} style={{ width: '100%' }} />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col span={8}>
                     <Form.Item
                       name="diastolicHigh"
                       label={t('superAdmin.threshold.upper')}
                       rules={[{ required: true, message: t('superAdmin.threshold.required') }, createUpperRule('diastolicLow', 'bp')]}
+                    >
+                      <InputNumber min={30} max={250} style={{ width: '100%' }} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item
+                      name="diastolicBorderline"
+                      label={t('superAdmin.threshold.borderline')}
+                      rules={[{ required: true, message: t('superAdmin.threshold.required') }, createBorderlineRule('diastolicHigh', 'bp')]}
                     >
                       <InputNumber min={30} max={250} style={{ width: '100%' }} />
                     </Form.Item>
