@@ -21,6 +21,114 @@
 			"command": "python -m pytest -q",
 			"isBackground": false,
 			"group": "build"
+		},
+		{
+			"label": "create requirements file",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"-c",
+				"import os; content = r'''# 需求：健康阈值治理 (Threshold Configuration Governance)\n\n## 基本信息\n- **标题**：超级管理员健康阈值配置与全局治理\n- **保存路径**：`/docs/requirements/req-threshold-config-governance.md`\n- **状态**：已澄清 (Clarified)\n- **背景**：目前系统使用硬编码的阈值判断健康状态，无法适应不同医疗标准或调整需求。需要赋予超级管理员配置“健康范围”的能力。\n- **业务价值**：提升平台灵活性与专业性，确保家庭成员获得的健康提示符合当前认可的医疗标准，消除因标准差异导致的误解。\n\n## 范围\n- **范围内**：\n    - 超级管理员全局配置收缩压、舒张压、心率的“健康范围”。\n    - 仪表盘根据配置动态展示“健康”、“临界”、“异常”状态（颜色/标记）。\n    - 默认阈值预设（收缩压 90-120，舒张压 60-90，心率 60-90）。\n    - 真实数据预览功能（在发布前查看新阈值效果）。\n    - 审计日志记录与 CSV 导出。\n    - API 路径规范化 (`/superadmin/`) 与安全校验。\n- **不包含**：\n    - 租户级或用户级独立阈值配置（MVP 仅支持全局）。\n    - 修改系统硬性安全输入范围（30-250 mmHg, 30-150 bpm 保持不变）。\n    - 复杂的后端主动推送/WebSocket 通知（前端刷新生效即可）。\n\n## 验收标准 (Acceptance Criteria)\n\n### 1. 阈值配置 (Configuration)\n- **AC1.1**: 超级管理员可在“Super Admin Setting”页面配置以下范围：\n    - 收缩压健康范围 (Min - Max)\n    - 舒张压健康范围 (Min - Max)\n    - 心率健康范围 (Min - Max)\n- **AC1.2**: 输入校验：\n    - Min 必须小于 Max。\n    - 配置值必须在硬性安全范围内（血压 30-250，心率 30-150）。\n- **AC1.3**: 系统初始化或重置时，自动应用默认值：\n    - 收缩压: 90 - 120 mmHg\n    - 舒张压: 60 - 90 mmHg\n    - 心率: 60 - 90 bpm\n\n### 2. 仪表盘显示 (Dashboard Visualization)\n- **AC2.1**: 仪表盘图表与列表需根据当前生效的阈值判定每条记录的状态。\n- **AC2.2**: 状态判定逻辑（以收缩压为例，设健康范围为 [L, H]）：\n    - **健康 (Health)**: 值在 [L, H] 之间（包含边界）。显示绿色（或默认色）。\n    - **临界/异常 (Abnormal/Critical)**: 值 < L 或 > H。显示红色。\n    - *注：用户提及“临界”状态，建议在 MVP 中若未配置独立临界阈值，可将超出健康范围但未达到极端值（如 >140）的区间视为临界，或统一处理为异常。具体逻辑需在设计阶段确认。*\n- **AC2.3**: 阈值更新后，用户刷新仪表盘即可看到基于新标准的状态变化。\n\n### 3. 预览与发布 (Preview & Publish)\n- **AC3.1**: 在保存/发布前，管理员可点击“预览”，系统基于当前真实数据（或抽样）展示新阈值下的分布变化（如：原 5 条异常，新标准下变为 8 条）。\n- **AC3.2**: 确认发布后，配置立即写入数据库并生效。\n\n### 4. 审计与安全 (Audit & Security)\n- **AC4.1**: 仅具有 `SUPER_ADMIN` 权限的用户可访问配置接口。\n- **AC4.2**: API 路径应位于 `/api/v1/superadmin/` 下。\n- **AC4.3**: 每次变更需记录：操作人 ID、时间、旧阈值、新阈值。\n- **AC4.4**: 支持导出审计日志为 CSV 格式。\n\n## 边界场景\n- **输入冲突**: 尝试设置 Min > Max，前端应阻止提交。\n- **硬性限制冲突**: 尝试设置健康上限 > 250，后端应拒绝。\n- **空值处理**: 某些记录可能缺省心率，计算状态时应忽略该字段。\n\n## 约束与非功能需求\n- **安全性**: 严格的 RBAC 控制，确保普通管理员无法修改。\n- **性能**: 阈值读取应有缓存（如内存缓存），避免每次请求查库；更新后缓存需及时失效。\n- **UI 风格**: 遵循 Ant Design 现有风格，保持一致性。\n- **兼容性**: 历史数据不被修改，仅展示状态发生变化。\n\n## 风险 / 问题\n- **用户困惑**: 阈值变更后，用户可能会发现昨天的“健康”记录今天变成了“异常”。建议在仪表盘显著位置提示“当前健康标准版本/日期”。\n\n## 后续行动\n- 设计数据模型（ThresholdConfig 表）。\n- 开发后端 API。\n- 更新前端 HealthChart 组件逻辑。\n'''; os.makedirs('docs/requirements', exist_ok=True); open('docs/requirements/req-threshold-config-governance.md', 'w', encoding='utf-8').write(content)"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "init req file",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"if not exist docs\\requirements mkdir docs\\requirements && echo PLACEHOLDER > docs/requirements/req-threshold-config-governance.md"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "create req file via python",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"echo with open('docs/requirements/req-threshold-config-governance.md', 'w') as f: f.write('PLACEHOLDER') > tools/create_req.py && python tools/create_req.py"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "cleanup",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"del tools\\create_req.py"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "create plan file",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"-c",
+				"import os; content = r'''# 实施计划：健康阈值治理 (Threshold Configuration Governance)\n\n**基于文档**：\n- `/docs/requirements/req-threshold-config-governance.md`\n- `/docs/epics-and-stories.md`\n- `/docs/Design/super-admin-settings-ux.md`\n\n## 1. 概述\n本计划旨在实现超级管理员对健康阈值（血压、心率）的全局配置功能。核心目标是允许非代码变更即可调整“健康/异常”判定标准，并实时反映在所有用户的仪表盘中。\n\n**关键约束**：\n- 硬性输入安全范围（30-250/30-150）不可变。\n- 仅超级管理员可配置。\n- MVP 不引入复杂缓存层，直接读取数据库。\n- 必须包含审计日志与 CSV 导出。\n\n---\n\n## 2. 阶段划分\n\n| 阶段 | 名称 | 重点 | 预计周期 |\n| :--- | :--- | :--- | :--- |\n| **Phase 1** | **后端核心与数据模型** | DB Schema, Manager 逻辑, API 基础, 单元测试 | Week 1 (Days 1-3) |\n| **Phase 2** | **管理端 UI 开发** | 导航, 配置表单, 预览交互, 发布流程 | Week 1 (Days 4-5) |\n| **Phase 3** | **用户端可视化适配** | 仪表盘图表适配, 列表状态标记, 默认值回退 | Week 2 (Days 1-2) |\n| **Phase 4** | **审计与验收** | CSV 导出, E2E 测试, 权限边界验证 | Week 2 (Days 3-4) |\n\n---\n\n## 3. 详细任务分解\n\n### Phase 1: 后端核心与数据模型 (Backend Core)\n\n#### 1.1 数据库迁移与模型 (DB Schema)\n- [ ] **Task 1.1.1**: 创建 `ThresholdConfig` 模型。\n    - 字段：`id`, `systolic_range` (JSON: min, max), `diastolic_range` (JSON), `heart_rate_range` (JSON), `version` (int), `status` (draft/active), `created_at`, `created_by`。\n- [ ] **Task 1.1.2**: 创建 `ThresholdAuditLog` 模型。\n    - 字段：`id`, `action` (publish/export), `actor_id`, `ip_address`, `user_agent`, `payload_before`, `payload_after`, `timestamp`。\n- [ ] **Task 1.1.3**: 生成并运行 Alembic 迁移脚本。\n- [ ] **Task 1.1.4**: 实现数据初始化脚本，写入默认阈值 (90-120, 60-90, 60-90) 作为 Version 1。\n\n#### 1.2 业务逻辑层 (Manager Layer)\n- [ ] **Task 1.2.1**: 实现 `ThresholdManager.validate_config(payload)`。\n    - 校验 Min < Max。\n    - 校验必须在硬性安全范围内 (30-250 / 30-150)。\n- [ ] **Task 1.2.2**: 实现 `ThresholdManager.create_draft(payload, user)`。\n- [ ] **Task 1.2.3**: 实现 `ThresholdManager.publish_config(draft_id, user)`。\n    - 事务处理：将当前 Active 标记为 Archived -> 将 Draft 标记为 Active -> 版本号 +1 -> 写入审计日志。\n- [ ] **Task 1.2.4**: 实现 `ThresholdManager.get_active_config()`。\n- [ ] **Task 1.2.5**: 实现 `ThresholdManager.preview_impact(draft_config)`。\n    - 选取最近 50-100 条真实记录，计算在新阈值下的状态分布（正常/异常数量）。\n\n#### 1.3 API 服务层 (Service Layer)\n- [ ] **Task 1.3.1**: 定义 Blueprint `super_admin_bp` (路径 `/api/v1/superadmin/`)。\n- [ ] **Task 1.3.2**: 实现配置接口：\n    - `POST /thresholds/draft` (创建草稿)\n    - `GET /thresholds/preview` (预览影响)\n    - `POST /thresholds/publish` (发布)\n    - `GET /thresholds/active` (获取当前配置 - 公共接口，可能在 `/api/v1/thresholds` 下)\n- [ ] **Task 1.3.3**: 添加 RBAC 装饰器 `@require_role('SUPER_ADMIN')` 确保权限安全。\n\n#### 1.4 单元测试\n- [ ] **Task 1.4.1**: 测试 `validate_config` 边界条件（如 Min=Max, 超出硬性范围）。\n- [ ] **Task 1.4.2**: 测试 `publish_config` 的事务原子性与版本递增。\n\n---\n\n### Phase 2: 管理端 UI 开发 (Frontend Admin)\n\n#### 2.1 导航与路由\n- [ ] **Task 2.1.1**: 更新 `src/router/index.js` (或对应路由文件)，添加 `/super-admin/settings` 路由。\n- [ ] **Task 2.1.2**: 实现路由守卫：非 SUPER_ADMIN 访问重定向至 Dashboard。\n- [ ] **Task 2.1.3**: 更新侧边栏菜单结构，区分 \"User Setting\" 与 \"Super Admin Setting\"。\n\n#### 2.2 设置页面开发\n- [ ] **Task 2.2.1**: 创建 `SuperAdminSettings` 页面骨架 (Header, Tabs)。\n- [ ] **Task 2.2.2**: 开发 `ThresholdForm` 组件。\n    - 使用 Ant Design `Form` + `InputNumber`。\n    - 实现前端即时校验 (Min < Max)。\n- [ ] **Task 2.2.3**: 开发 `PreviewPanel` 组件。\n    - 展示 \"当前 vs 新设定\" 的对比数据（如：异常记录数变化）。\n    - 调用 `GET /preview` 接口渲染。\n\n#### 2.3 交互逻辑\n- [ ] **Task 2.3.1**: 集成 \"保存草稿\" 与 \"发布\" 按钮逻辑。\n- [ ] **Task 2.3.2**: 发布成功后的全局提示 (Message/Notification)。\n\n---\n\n### Phase 3: 用户端可视化适配 (User Visualization)\n\n#### 3.1 数据获取\n- [ ] **Task 3.1.1**: 在前端 App 初始化或 Dashboard 加载时，调用 `GET /api/v1/thresholds/active` 获取最新阈值。\n- [ ] **Task 3.1.2**: 将阈值存入 React Context 或 Redux Store (或简单 State)，供组件消费。\n\n#### 3.2 图表与列表适配\n- [ ] **Task 3.2.1**: 修改 `HealthChart.js`。\n    - 移除硬编码常量 (`NORMAL_SYSTOLIC_THRESHOLD` 等)。\n    - 接收动态阈值 props。\n    - 更新 `abnormalMap` 计算逻辑，支持 \"临界\" (Borderline) 状态（可选，若 MVP 仅需红/绿则保持二元）。\n    - 更新 `visualMap` 或 `itemStyle` 颜色逻辑。\n- [ ] **Task 3.2.2**: 更新健康记录列表/表格。\n    - 根据动态阈值渲染状态标签 (Tag)。\n\n---\n\n### Phase 4: 审计与验收 (Audit & Finalize)\n\n#### 4.1 审计导出\n- [ ] **Task 4.1.1**: 实现后端 `GET /api/v1/superadmin/audit/export` 接口。\n    - 生成 CSV 流。\n    - 包含 BOM 头 (UTF-8)。\n    - 文件名符合 RFC5987 (`filename*=UTF-8''...`).\n- [ ] **Task 4.1.2**: 在前端 \"Super Admin Setting\" -> \"审计日志\" Tab 中添加导出按钮。\n\n#### 4.2 测试与验证\n- [ ] **Task 4.2.1**: 编写 E2E 测试 (Playwright)。\n    - 场景：Admin 登录 -> 修改阈值 -> 发布 -> 切换 User 账号 -> 验证图表颜色变化。\n- [ ] **Task 4.2.2**: 验证安全性：普通 Admin 尝试直接调用 API 应返回 403。\n\n## 4. 依赖检查\n- 需确认 `src/security.py` 中是否有现成的 `SUPER_ADMIN` 角色定义与校验装饰器。\n- 需确认前端使用的 Ant Design 版本以查阅对应文档。\n\n## 5. 风险管理\n- **风险**: 阈值更新后，用户对历史数据的状态变化感到困惑。\n- **缓解**: 在仪表盘显著位置添加 Tooltip：\"基于 2025-12-XX 更新的健康标准\"。\n'''; os.makedirs('docs/plan', exist_ok=True); open('docs/plan/plan-threshold-config-governance.md', 'w', encoding='utf-8').write(content)"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "create plan file",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"-c",
+				"import os; content = r'''# 实施计划：健康阈值治理 (Threshold Configuration Governance)\n\n**基于文档**：\n- `/docs/requirements/req-threshold-config-governance.md`\n- `/docs/epics-and-stories.md`\n- `/docs/Design/super-admin-settings-ux.md`\n\n## 1. 概述\n本计划旨在实现超级管理员对健康阈值（血压、心率）的全局配置功能。核心目标是允许非代码变更即可调整“健康/异常”判定标准，并实时反映在所有用户的仪表盘中。\n\n**关键约束**：\n- 硬性输入安全范围（30-250/30-150）不可变。\n- 仅超级管理员可配置。\n- MVP 不引入复杂缓存层，直接读取数据库。\n- 必须包含审计日志与 CSV 导出。\n\n---\n\n## 2. 阶段划分\n\n| 阶段 | 名称 | 重点 | 预计周期 |\n| :--- | :--- | :--- | :--- |\n| **Phase 1** | **后端核心与数据模型** | DB Schema, Manager 逻辑, API 基础, 单元测试 | Week 1 (Days 1-3) |\n| **Phase 2** | **管理端 UI 开发** | 导航, 配置表单, 预览交互, 发布流程 | Week 1 (Days 4-5) |\n| **Phase 3** | **用户端可视化适配** | 仪表盘图表适配, 列表状态标记, 默认值回退 | Week 2 (Days 1-2) |\n| **Phase 4** | **审计与验收** | CSV 导出, E2E 测试, 权限边界验证 | Week 2 (Days 3-4) |\n\n---\n\n## 3. 详细任务分解\n\n### Phase 1: 后端核心与数据模型 (Backend Core)\n\n#### 1.1 数据库迁移与模型 (DB Schema)\n- [ ] **Task 1.1.1**: 创建 `ThresholdConfig` 模型。\n    - 字段：`id`, `systolic_range` (JSON: min, max), `diastolic_range` (JSON), `heart_rate_range` (JSON), `version` (int), `status` (draft/active), `created_at`, `created_by`。\n- [ ] **Task 1.1.2**: 创建 `ThresholdAuditLog` 模型。\n    - 字段：`id`, `action` (publish/export), `actor_id`, `ip_address`, `user_agent`, `payload_before`, `payload_after`, `timestamp`。\n- [ ] **Task 1.1.3**: 生成并运行 Alembic 迁移脚本。\n- [ ] **Task 1.1.4**: 实现数据初始化脚本，写入默认阈值 (90-120, 60-90, 60-90) 作为 Version 1。\n\n#### 1.2 业务逻辑层 (Manager Layer)\n- [ ] **Task 1.2.1**: 实现 `ThresholdManager.validate_config(payload)`。\n    - 校验 Min < Max。\n    - 校验必须在硬性安全范围内 (30-250 / 30-150)。\n- [ ] **Task 1.2.2**: 实现 `ThresholdManager.create_draft(payload, user)`。\n- [ ] **Task 1.2.3**: 实现 `ThresholdManager.publish_config(draft_id, user)`。\n    - 事务处理：将当前 Active 标记为 Archived -> 将 Draft 标记为 Active -> 版本号 +1 -> 写入审计日志。\n- [ ] **Task 1.2.4**: 实现 `ThresholdManager.get_active_config()`。\n- [ ] **Task 1.2.5**: 实现 `ThresholdManager.preview_impact(draft_config)`。\n    - 选取最近 50-100 条真实记录，计算在新阈值下的状态分布（正常/异常数量）。\n\n#### 1.3 API 服务层 (Service Layer)\n- [ ] **Task 1.3.1**: 定义 Blueprint `super_admin_bp` (路径 `/api/v1/superadmin/`)。\n- [ ] **Task 1.3.2**: 实现配置接口：\n    - `POST /thresholds/draft` (创建草稿)\n    - `GET /thresholds/preview` (预览影响)\n    - `POST /thresholds/publish` (发布)\n    - `GET /thresholds/active` (获取当前配置 - 公共接口，可能在 `/api/v1/thresholds` 下)\n- [ ] **Task 1.3.3**: 添加 RBAC 装饰器 `@require_role('SUPER_ADMIN')` 确保权限安全。\n\n#### 1.4 单元测试\n- [ ] **Task 1.4.1**: 测试 `validate_config` 边界条件（如 Min=Max, 超出硬性范围）。\n- [ ] **Task 1.4.2**: 测试 `publish_config` 的事务原子性与版本递增。\n\n---\n\n### Phase 2: 管理端 UI 开发 (Frontend Admin)\n\n#### 2.1 导航与路由\n- [ ] **Task 2.1.1**: 更新 `src/router/index.js` (或对应路由文件)，添加 `/super-admin/settings` 路由。\n- [ ] **Task 2.1.2**: 实现路由守卫：非 SUPER_ADMIN 访问重定向至 Dashboard。\n- [ ] **Task 2.1.3**: 更新侧边栏菜单结构，区分 \"User Setting\" 与 \"Super Admin Setting\"。\n\n#### 2.2 设置页面开发\n- [ ] **Task 2.2.1**: 创建 `SuperAdminSettings` 页面骨架 (Header, Tabs)。\n- [ ] **Task 2.2.2**: 开发 `ThresholdForm` 组件。\n    - 使用 Ant Design `Form` + `InputNumber`。\n    - 实现前端即时校验 (Min < Max)。\n- [ ] **Task 2.2.3**: 开发 `PreviewPanel` 组件。\n    - 展示 \"当前 vs 新设定\" 的对比数据（如：异常记录数变化）。\n    - 调用 `GET /preview` 接口渲染。\n\n#### 2.3 交互逻辑\n- [ ] **Task 2.3.1**: 集成 \"保存草稿\" 与 \"发布\" 按钮逻辑。\n- [ ] **Task 2.3.2**: 发布成功后的全局提示 (Message/Notification)。\n\n---\n\n### Phase 3: 用户端可视化适配 (User Visualization)\n\n#### 3.1 数据获取\n- [ ] **Task 3.1.1**: 在前端 App 初始化或 Dashboard 加载时，调用 `GET /api/v1/thresholds/active` 获取最新阈值。\n- [ ] **Task 3.1.2**: 将阈值存入 React Context 或 Redux Store (或简单 State)，供组件消费。\n\n#### 3.2 图表与列表适配\n- [ ] **Task 3.2.1**: 修改 `HealthChart.js`。\n    - 移除硬编码常量 (`NORMAL_SYSTOLIC_THRESHOLD` 等)。\n    - 接收动态阈值 props。\n    - 更新 `abnormalMap` 计算逻辑，支持 \"临界\" (Borderline) 状态（可选，若 MVP 仅需红/绿则保持二元）。\n    - 更新 `visualMap` 或 `itemStyle` 颜色逻辑。\n- [ ] **Task 3.2.2**: 更新健康记录列表/表格。\n    - 根据动态阈值渲染状态标签 (Tag)。\n\n---\n\n### Phase 4: 审计与验收 (Audit & Finalize)\n\n#### 4.1 审计导出\n- [ ] **Task 4.1.1**: 实现后端 `GET /api/v1/superadmin/audit/export` 接口。\n    - 生成 CSV 流。\n    - 包含 BOM 头 (UTF-8)。\n    - 文件名符合 RFC5987 (`filename*=UTF-8''...`).\n- [ ] **Task 4.1.2**: 在前端 \"Super Admin Setting\" -> \"审计日志\" Tab 中添加导出按钮。\n\n#### 4.2 测试与验证\n- [ ] **Task 4.2.1**: 编写 E2E 测试 (Playwright)。\n    - 场景：Admin 登录 -> 修改阈值 -> 发布 -> 切换 User 账号 -> 验证图表颜色变化。\n- [ ] **Task 4.2.2**: 验证安全性：普通 Admin 尝试直接调用 API 应返回 403。\n\n## 4. 依赖检查\n- 需确认 `src/security.py` 中是否有现成的 `SUPER_ADMIN` 角色定义与校验装饰器。\n- 需确认前端使用的 Ant Design 版本以查阅对应文档。\n\n## 5. 风险管理\n- **风险**: 阈值更新后，用户对历史数据的状态变化感到困惑。\n- **缓解**: 在仪表盘显著位置添加 Tooltip：\"基于 2025-12-XX 更新的健康标准\"。\n'''; os.makedirs('docs/plan', exist_ok=True); open('docs/plan/plan-threshold-config-governance.md', 'w', encoding='utf-8').write(content)"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "create plan file via python",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"echo with open('docs/plan/plan-threshold-config-governance.md', 'w') as f: f.write('PLACEHOLDER') > tools/create_plan.py && python tools/create_plan.py"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "cleanup plan tool",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"del tools\\create_plan.py"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "create issue draft",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"-c",
+				"import os; content = r'''---\ntitle: \"feat: Super Admin Threshold Configuration Governance\"\nlabels: \"enhancement, super-admin, threshold\"\nassignees: \"\"\n---\n\n## 需求概述 (Summary)\n**基于文档**: `/docs/requirements/req-threshold-config-governance.md`\n\n目前系统使用硬编码的阈值判断健康状态，无法适应不同医疗标准或调整需求。本功能旨在赋予超级管理员全局配置“健康范围”（收缩压、舒张压、心率）的能力，配置后实时影响所有用户的仪表盘显示。\n\n**关键约束**:\n- 硬性输入安全范围（30-250/30-150）不可变。\n- 仅超级管理员可配置。\n- 必须包含审计日志与 CSV 导出。\n\n## 验收标准 (Acceptance Criteria)\n\n### 1. 阈值配置\n- [ ] 超级管理员可在“Super Admin Setting”页面配置收缩压、舒张压、心率的健康范围。\n- [ ] 校验 Min < Max，且必须在硬性安全范围内 (30-250 / 30-150)。\n- [ ] 系统初始化或重置时，自动应用默认值 (90-120, 60-90, 60-90)。\n\n### 2. 仪表盘显示\n- [ ] 仪表盘图表与列表根据当前生效阈值判定状态（健康/临界/异常）。\n- [ ] 阈值更新后，刷新仪表盘即可见变化。\n\n### 3. 预览与发布\n- [ ] 发布前支持“预览”，展示新阈值对真实数据的影响分布。\n- [ ] 确认发布后立即生效并记录版本。\n\n### 4. 审计与安全\n- [ ] 仅 `SUPER_ADMIN` 可访问。\n- [ ] 每次变更记录审计日志（操作人、时间、旧值、新值）。\n- [ ] 支持导出审计日志为 CSV。\n\n## 实施任务分解 (Implementation Tasks)\n\n### Phase 1: Backend Core & Data Model\n- [ ] **Task 1.1.1**: Create `ThresholdConfig` model (JSON ranges, version, status).\n- [ ] **Task 1.1.2**: Create `ThresholdAuditLog` model.\n- [ ] **Task 1.1.3**: Generate and run Alembic migrations.\n- [ ] **Task 1.1.4**: Implement data init script (default thresholds v1).\n- [ ] **Task 1.2.1**: Implement `ThresholdManager.validate_config`.\n- [ ] **Task 1.2.2**: Implement `ThresholdManager.create_draft`.\n- [ ] **Task 1.2.3**: Implement `ThresholdManager.publish_config` (transactional).\n- [ ] **Task 1.2.4**: Implement `ThresholdManager.get_active_config`.\n- [ ] **Task 1.2.5**: Implement `ThresholdManager.preview_impact`.\n- [ ] **Task 1.3.1**: Define Blueprint `super_admin_bp` (`/api/v1/superadmin/`).\n- [ ] **Task 1.3.2**: Implement API endpoints (draft, preview, publish, active).\n- [ ] **Task 1.3.3**: Add `@require_role('SUPER_ADMIN')` decorator.\n- [ ] **Task 1.4.1**: Unit tests for validation logic.\n- [ ] **Task 1.4.2**: Unit tests for publish transaction.\n\n### Phase 2: Frontend Admin UI\n- [ ] **Task 2.1.1**: Add route `/super-admin/settings`.\n- [ ] **Task 2.1.2**: Implement route guard (Super Admin only).\n- [ ] **Task 2.1.3**: Update sidebar menu (User vs Super Admin settings).\n- [ ] **Task 2.2.1**: Create `SuperAdminSettings` page layout.\n- [ ] **Task 2.2.2**: Develop `ThresholdForm` component with validation.\n- [ ] **Task 2.2.3**: Develop `PreviewPanel` component.\n- [ ] **Task 2.3.1**: Integrate Draft/Publish buttons.\n- [ ] **Task 2.3.2**: Add global notifications for success/failure.\n\n### Phase 3: User Visualization\n- [ ] **Task 3.1.1**: Fetch active thresholds on App init/Dashboard load.\n- [ ] **Task 3.1.2**: Store thresholds in global state (Context/Store).\n- [ ] **Task 3.2.1**: Update `HealthChart.js` to use dynamic thresholds.\n- [ ] **Task 3.2.2**: Update health record list/table status tags.\n\n### Phase 4: Audit & Finalize\n- [ ] **Task 4.1.1**: Implement backend CSV export endpoint (RFC5987).\n- [ ] **Task 4.1.2**: Add Export button in Admin UI.\n- [ ] **Task 4.2.1**: E2E Tests (Playwright) for full flow.\n- [ ] **Task 4.2.2**: Security verification tests.\n'''; os.makedirs('docs', exist_ok=True); open('docs/ISSUE_DRAFT_THRESHOLD_GOVERNANCE.md', 'w', encoding='utf-8').write(content)"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
 		}
 	]
 }
