@@ -18,27 +18,35 @@ export const computeThresholdStatus = (systolic, diastolic, heartRate, config) =
 
   const payload = config.payload;
   
-  // Extract ranges with defaults
-  const sHealthy = payload.systolic_healthy || [90, 120];
-  const sBorderline = payload.systolic_borderline || [120, 140];
-  const dHealthy = payload.diastolic_healthy || [60, 80];
-  const dBorderline = payload.diastolic_borderline || [80, 90];
+  // Helper to determine status for a single metric
+  const getMetricStatus = (value, metricKey) => {
+    // 1. Try new structure: payload.systolic = { min, max, borderline_max }
+    if (payload[metricKey] && typeof payload[metricKey] === 'object' && !Array.isArray(payload[metricKey])) {
+      const { min, max, borderline_max } = payload[metricKey];
+      if (value >= min && value <= max) return 'healthy';
+      if (borderline_max && value > max && value <= borderline_max) return 'borderline';
+      return 'out_of_range';
+    }
 
-  // Determine systolic status
-  let sStatus = 'out_of_range';
-  if (systolic >= sHealthy[0] && systolic <= sHealthy[1]) {
-    sStatus = 'healthy';
-  } else if (systolic >= sBorderline[0] && systolic <= sBorderline[1]) {
-    sStatus = 'borderline';
-  }
+    // 2. Fallback to old structure: payload.systolic_healthy = [min, max]
+    const healthyRange = payload[`${metricKey}_healthy`];
+    const borderlineRange = payload[`${metricKey}_borderline`];
+    
+    if (healthyRange && Array.isArray(healthyRange)) {
+      if (value >= healthyRange[0] && value <= healthyRange[1]) return 'healthy';
+    }
+    if (borderlineRange && Array.isArray(borderlineRange)) {
+      if (value >= borderlineRange[0] && value <= borderlineRange[1]) return 'borderline';
+    }
+    
+    // If we have config but value matches nothing -> out_of_range
+    if (healthyRange || payload[metricKey]) return 'out_of_range';
+    
+    return 'healthy'; // Default if no config for this metric
+  };
 
-  // Determine diastolic status
-  let dStatus = 'out_of_range';
-  if (diastolic >= dHealthy[0] && diastolic <= dHealthy[1]) {
-    dStatus = 'healthy';
-  } else if (diastolic >= dBorderline[0] && diastolic <= dBorderline[1]) {
-    dStatus = 'borderline';
-  }
+  const sStatus = getMetricStatus(systolic, 'systolic');
+  const dStatus = getMetricStatus(diastolic, 'diastolic');
 
   // Combine: worst status wins
   if (sStatus === 'out_of_range' || dStatus === 'out_of_range') {

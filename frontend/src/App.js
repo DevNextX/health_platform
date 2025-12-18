@@ -88,7 +88,7 @@ function App() {
 
   return (
     <ConfigProvider locale={antdLocale}>
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <MemberProvider>
         <div className="App">
           <Routes>

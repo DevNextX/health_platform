@@ -11,6 +11,7 @@ import {
   TooltipComponent,
   LegendComponent,
   DataZoomComponent,
+  TitleComponent,
 } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import { Empty, Select, Space, Button } from 'antd';
@@ -18,17 +19,19 @@ import { DownloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { parseServerTime } from '../utils/date';
+import { computeThresholdStatus, getStatusColor } from '../utils/thresholdCalculator';
 
 const { Option } = Select;
 
 const SYSTOLIC_COLOR = '#1890ff';
 const DIASTOLIC_COLOR = '#52c41a';
 const HEART_RATE_COLOR = '#722ed1';
-const WARNING_COLOR = '#ff4d4f';
+// Symbol sizing constants keep highlight markers consistent
 const DEFAULT_SYMBOL_SIZE = 6;
+const BORDERLINE_SYMBOL_SIZE = 7;
 const HIGHLIGHT_SYMBOL_SIZE = 9;
-const NORMAL_SYSTOLIC_THRESHOLD = 120;
-const NORMAL_DIASTOLIC_THRESHOLD = 80;
+// Colors now handled by getStatusColor, but we keep base colors for lines
+
 
 // Register ECharts components
 echarts.use([
@@ -37,10 +40,11 @@ echarts.use([
   TooltipComponent,
   LegendComponent,
   DataZoomComponent,
+  TitleComponent,
   CanvasRenderer,
 ]);
 
-const HealthChart = ({ records = [] }) => {
+const HealthChart = ({ records = [], thresholdConfig }) => {
   const { t } = useTranslation();
   const [timeRange, setTimeRange] = useState('week'); // week, month, all
   const [filteredRecords, setFilteredRecords] = useState([]);
@@ -118,41 +122,54 @@ const HealthChart = ({ records = [] }) => {
   const diastolicData = filteredRecords.map(record => toNumOrNull(record.diastolic));
   const heartRateData = filteredRecords.map(record => toNumOrNull(record.heart_rate));
 
-  const abnormalMap = filteredRecords.map((record, index) => {
-    const systolicValue = systolicData[index];
-    const diastolicValue = diastolicData[index];
-    return (
-      (typeof systolicValue === 'number' && systolicValue >= NORMAL_SYSTOLIC_THRESHOLD) ||
-      (typeof diastolicValue === 'number' && diastolicValue >= NORMAL_DIASTOLIC_THRESHOLD)
-    );
+  // Helper to determine point style based on threshold
+  const getPointStyle = (value, type) => {
+    if (value === null) return {};
+    if (!thresholdConfig || !thresholdConfig.payload) return {};
+    
+    const payload = thresholdConfig.payload;
+    let status = 'healthy';
+    
+    // 1. Try new structure
+    if (payload[type] && typeof payload[type] === 'object' && !Array.isArray(payload[type])) {
+      const { min, max, borderline_max } = payload[type];
+      if (value < min || (borderline_max && value > borderline_max)) status = 'out_of_range';
+      else if (value > max) status = 'borderline';
+    } 
+    // 2. Fallback to old structure
+    else {
+      const healthy = payload[`${type}_healthy`];
+      const borderline = payload[`${type}_borderline`];
+      if (healthy && Array.isArray(healthy)) {
+        if (value < healthy[0] || value > healthy[1]) {
+           if (borderline && Array.isArray(borderline) && value >= borderline[0] && value <= borderline[1]) {
+             status = 'borderline';
+           } else {
+             status = 'out_of_range';
+           }
+        }
+      } else {
+        // Hardcoded fallback if no config (legacy behavior)
+        const normal = type === 'systolic' ? 120 : 80;
+        if (value >= normal) status = 'out_of_range'; // Old logic was just >= normal is bad
+      }
+    }
+
+    if (status === 'out_of_range') return { itemStyle: { color: getStatusColor('out_of_range') }, symbolSize: HIGHLIGHT_SYMBOL_SIZE };
+    if (status === 'borderline') return { itemStyle: { color: getStatusColor('borderline') }, symbolSize: BORDERLINE_SYMBOL_SIZE };
+    return {};
+  };
+
+  const systolicSeriesData = systolicData.map((value) => {
+    if (value === null) return value;
+    const style = getPointStyle(value, 'systolic');
+    return style.itemStyle ? { value, ...style } : value;
   });
 
-  const systolicSeriesData = systolicData.map((value, index) => {
-    if (value === null) {
-      return value;
-    }
-    if (!abnormalMap[index]) {
-      return value;
-    }
-    return {
-      value,
-      itemStyle: { color: WARNING_COLOR },
-      symbolSize: HIGHLIGHT_SYMBOL_SIZE,
-    };
-  });
-
-  const diastolicSeriesData = diastolicData.map((value, index) => {
-    if (value === null) {
-      return value;
-    }
-    if (!abnormalMap[index]) {
-      return value;
-    }
-    return {
-      value,
-      itemStyle: { color: WARNING_COLOR },
-      symbolSize: HIGHLIGHT_SYMBOL_SIZE,
-    };
+  const diastolicSeriesData = diastolicData.map((value) => {
+    if (value === null) return value;
+    const style = getPointStyle(value, 'diastolic');
+    return style.itemStyle ? { value, ...style } : value;
   });
 
   const numericValues = [...systolicData, ...diastolicData, ...heartRateData]
