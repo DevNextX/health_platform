@@ -13,7 +13,8 @@ manager = ImportManager()
 
 # File upload constraints
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-MAX_ROWS = 1000
+MAX_ROWS = 1000  # Maximum rows per import
+MAX_ERRORS_IN_RESPONSE = 100  # Maximum errors to return in response
 ALLOWED_EXTENSIONS = {'.xlsx', '.xls', '.csv'}
 
 
@@ -125,17 +126,17 @@ def upload_import_file():
         
         # Include error details if any
         if result['errors']:
-            # Limit error details in response (only first 100)
+            # Limit error details in response
             response_data['errors'] = [
                 {
                     "row": err['row'],
                     "reason": err['reason']
                 }
-                for err in result['errors'][:100]
+                for err in result['errors'][:MAX_ERRORS_IN_RESPONSE]
             ]
             
-            if len(result['errors']) > 100:
-                response_data['message'] += f"（仅显示前 100 个错误）"
+            if len(result['errors']) > MAX_ERRORS_IN_RESPONSE:
+                response_data['message'] += f"（仅显示前 {MAX_ERRORS_IN_RESPONSE} 个错误）"
         
         return jsonify(response_data), 200
         

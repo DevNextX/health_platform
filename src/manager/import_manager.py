@@ -12,6 +12,13 @@ from ..models import HealthRecord, RecordSubject, Member, ImportLog
 from ..manager.member_manager import MemberManager
 from ..resilience.policy import db_breaker, with_retry
 
+# Validation constants
+BP_MIN = 30  # Minimum blood pressure (mmHg)
+BP_MAX = 250  # Maximum blood pressure (mmHg)
+HR_MIN = 30  # Minimum heart rate (bpm)
+HR_MAX = 150  # Maximum heart rate (bpm)
+NOTE_MAX_LENGTH = 500  # Maximum note length (characters)
+
 
 class ImportManager:
     def __init__(self):
@@ -144,8 +151,8 @@ class ImportManager:
         
         try:
             systolic_val = int(float(systolic))
-            if systolic_val < 30 or systolic_val > 250:
-                return False, None, "收缩压必须在 30-250 mmHg 范围内"
+            if systolic_val < BP_MIN or systolic_val > BP_MAX:
+                return False, None, f"收缩压必须在 {BP_MIN}-{BP_MAX} mmHg 范围内"
             cleaned['systolic'] = systolic_val
         except (ValueError, TypeError):
             return False, None, "收缩压必须是有效数字"
@@ -157,8 +164,8 @@ class ImportManager:
         
         try:
             diastolic_val = int(float(diastolic))
-            if diastolic_val < 30 or diastolic_val > 250:
-                return False, None, "舒张压必须在 30-250 mmHg 范围内"
+            if diastolic_val < BP_MIN or diastolic_val > BP_MAX:
+                return False, None, f"舒张压必须在 {BP_MIN}-{BP_MAX} mmHg 范围内"
             cleaned['diastolic'] = diastolic_val
         except (ValueError, TypeError):
             return False, None, "舒张压必须是有效数字"
@@ -172,8 +179,8 @@ class ImportManager:
         if heart_rate is not None and pd.notna(heart_rate):
             try:
                 hr_val = int(float(heart_rate))
-                if hr_val < 30 or hr_val > 150:
-                    return False, None, "心率必须在 30-150 bpm 范围内"
+                if hr_val < HR_MIN or hr_val > HR_MAX:
+                    return False, None, f"心率必须在 {HR_MIN}-{HR_MAX} bpm 范围内"
                 cleaned['heart_rate'] = hr_val
             except (ValueError, TypeError):
                 return False, None, "心率必须是有效数字"
@@ -193,8 +200,8 @@ class ImportManager:
         note = get_value(note_cols)
         if note and pd.notna(note):
             note_str = str(note).strip()
-            if len(note_str) > 500:
-                return False, None, "备注不能超过 500 字符"
+            if len(note_str) > NOTE_MAX_LENGTH:
+                return False, None, f"备注不能超过 {NOTE_MAX_LENGTH} 字符"
             cleaned['note'] = note_str
         else:
             cleaned['note'] = None
@@ -236,7 +243,7 @@ class ImportManager:
             else:
                 error_rows.append({
                     "row": idx,
-                    "data": {k: str(v) for k, v in row.items() if pd.notna(v)},
+                    "data": {k: (v if not pd.notna(v) else (v if isinstance(v, (str, int, float, bool)) else str(v))) for k, v in row.items()},
                     "reason": error_msg
                 })
                 if not skip_errors:
@@ -285,7 +292,7 @@ class ImportManager:
                     "errors": [{
                         "row": 0,
                         "data": {},
-                        "reason": f"数据库插入失败: {str(e)}"
+                        "reason": f"Database insert failed: {str(e)}"
                     }]
                 }
         
