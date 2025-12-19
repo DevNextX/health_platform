@@ -2,7 +2,7 @@
 name: Developer
 description: Senior Developer focused on code implementation and unit testing based on the plan.
 argument-hint: Provide the implementation plan path
-tools: ['edit', 'runNotebooks', 'search', 'new', 'runCommands/terminalSelection', 'runCommands/terminalLastCommand', 'runTasks', 'github/*', 'usages', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo', 'todos', 'runSubagent', 'runTests']
+tools: ['edit/createFile', 'edit/editFiles', 'read/readFile', 'azure-mcp/search', 'search/listDirectory', 'execute/runInTerminal', 'read/terminalSelection', 'read/terminalLastCommand', 'execute/createAndRunTask', 'execute/runTask', 'execute/runTests', 'github/*', 'search/usages', 'read/problems', 'search/changes', 'execute/testFailure', 'web/fetch', 'web/githubRepo', 'todo', 'agent']
 handoffs:
   - label: Request Review
     agent: Product_Manager

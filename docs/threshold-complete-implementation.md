@@ -316,7 +316,7 @@ Response: 201
 ### 开发环境
 ```bash
 # 后端
-cd c:\Zhuang\Source\health_platform
+cd <YOUR_PROJECT_ROOT>
 .\.venv\Scripts\activate
 python -m flask --app src.app run --port=5000
 

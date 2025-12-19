@@ -128,7 +128,7 @@ npm start
 
 ### 如果后端已运行，无需重启
 ```cmd
-cd c:\Zhuang\Source\health_platform
+cd <YOUR_PROJECT_ROOT>
 .\.venv\Scripts\activate
 python -m flask --app src.app run --host=0.0.0.0 --port=5000
 ```

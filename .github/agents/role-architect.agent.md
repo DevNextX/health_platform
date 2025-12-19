@@ -2,7 +2,7 @@
 name: System_Architect
 description: Expert Architect focused on technical design, data modeling, and system boundaries.
 argument-hint: Provide the requirement document path
-tools: ['edit', 'search', 'new', 'runCommands', 'runTasks', 'github/*', 'usages', 'changes', 'testFailure', 'fetch', 'githubRepo', 'todos', 'runSubagent', 'runTests']
+tools: ['edit/createFile', 'edit/editFiles', 'read/readFile', 'azure-mcp/search', 'search/listDirectory', 'execute/runInTerminal', 'execute/runTask', 'github/*', 'search/usages', 'search/changes', 'execute/testFailure', 'web/fetch', 'web/githubRepo', 'todo', 'agent', 'execute/runTests']
 handoffs:
   - label: Proceed to Implementation Planning
     agent: Tech_Lead_Planner

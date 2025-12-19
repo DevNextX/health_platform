@@ -2,7 +2,7 @@
 name: Tech_Lead_Planner
 description: Technical Lead focused on breaking down design into actionable implementation steps.
 argument-hint: Provide the requirement and design document paths
-tools: ['edit', 'search', 'runCommands', 'runTasks', 'Azure MCP/search', 'github/*', 'fetch', 'todos', 'runSubagent']
+tools: ['edit/createFile', 'edit/editFiles', 'read/readFile', 'azure-mcp/search', 'execute/runInTerminal', 'read/terminalLastCommand', 'read/terminalSelection', 'execute/createAndRunTask', 'execute/runTask', 'github/*', 'web/fetch', 'todo', 'agent']
 handoffs:
   - label: Start Implementation
     agent: Developer

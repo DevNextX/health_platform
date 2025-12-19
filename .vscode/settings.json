@@ -7,5 +7,6 @@
         }
     },
     "chatgpt.commentCodeLensEnabled": false,
-    "chatgpt.openOnStartup": true
+    "chatgpt.openOnStartup": true,
+    "postman.settings.dotenv-detection-notification-visibility": false
 }

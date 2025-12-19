@@ -2,7 +2,7 @@
 name: Product_Manager
 description: Expert PM focused on requirements analysis, scope definition, and business value.
 argument-hint: Describe the feature idea or business problem
-tools: ['edit', 'search', 'runTasks', 'github/*', 'fetch', 'githubRepo', 'todos', 'runSubagent']
+tools: ['edit/createFile', 'edit/editFiles', 'read/readFile', 'azure-mcp/search', 'execute/createAndRunTask', 'execute/runTask', 'github/*', 'web/fetch', 'web/githubRepo', 'todo', 'agent']
 handoffs:
   - label: Proceed to Architecture Design
     agent: System_Architect

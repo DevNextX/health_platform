@@ -15,7 +15,7 @@
 ### 后端 (终端 1)
 
 ```cmd
-cd c:\Zhuang\Source\health_platform
+cd <YOUR_PROJECT_ROOT>
 python -m venv .venv
 .\.venv\Scripts\activate.bat
 pip install -r requirements.txt

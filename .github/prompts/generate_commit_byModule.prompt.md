@@ -1,3 +1,4 @@
+```prompt
 ---
 agent: agent
 ---
@@ -18,3 +19,5 @@ Please analyze the current uncommitted changes in the workspace and generate Git
    - Analyze `git status` and `git diff`.
    - Group related files.
    - Execute `git add <files>` and `git commit -m "..."` for each group sequentially.
+
+```

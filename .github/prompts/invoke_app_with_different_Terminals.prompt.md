@@ -1,43 +1,48 @@
+```prompt
 ---
 agent: agent
 ---
-请启动本应用，严格遵守以下步骤以确保环境隔离：
+Please start this application, strictly following these steps to ensure environment isolation:
 
-1. **启动后端（Terminal 1，仅用于后端）**：
-   - 创建一个**新的**终端窗口（Terminal 1，专门用于后端）。
-   - 执行以下命令（Windows `cmd.exe`）：
+1. **Start Backend (Terminal 1, Backend Only)**:
+   - Create a **new** terminal window (Terminal 1, dedicated to backend).
+   - Execute the following commands (Windows `cmd.exe`):
 
      ```cmd
-     cd /d c:\Zhuang\Source\health_platform
+     cd /d <YOUR_PROJECT_ROOT>
      python -m venv .venv
      .\.venv\Scripts\activate.bat
      set PYTHONPATH=.
      python -m flask --app src.app run --host=0.0.0.0 --port=5000
      ```
 
-   - 启动成功后，**保持该终端运行，不要在此终端执行任何其他命令**（包括测试、脚本等）。
+   - After successful startup, **keep this terminal running and do not execute any other commands** (including tests, scripts, etc.).
 
-2. **启动前端（Terminal 2，仅用于前端）**：
-   - 创建另一个**新的**终端窗口（Terminal 2，专门用于前端）。
-   - 执行以下命令（Windows `cmd.exe`）：
+2. **Start Frontend (Terminal 2, Frontend Only)**:
+   - Create another **new** terminal window (Terminal 2, dedicated to frontend).
+   - Execute the following commands (Windows `cmd.exe`):
 
      ```cmd
-     cd /d c:\Zhuang\Source\health_platform\frontend
+     cd /d <YOUR_PROJECT_ROOT>\frontend
      npm install
      npm start
      ```
 
-   - 启动成功后，**保持该终端运行，不要在此终端执行任何其他命令**。任何试图在该终端追加命令（例如通过 `&&` 串联）都被视为错误用法。
+   - After successful startup, **keep this terminal running and do not execute any other commands**. Any attempt to chain commands (e.g., via `&&`) is considered incorrect usage.
 
-3. **准备操作终端（Terminal 3，仅用于交互命令）**：
-   - 创建第三个**新的**终端窗口（Terminal 3，专门用于后续所有交互式命令）。
-   - 执行以下命令（Windows `cmd.exe`）：
+3. **Prepare Operational Terminal (Terminal 3, Interactive Commands Only)**:
+   - Create a third **new** terminal window (Terminal 3, dedicated to all subsequent interactive commands).
+   - Execute the following commands (Windows `cmd.exe`):
 
      ```cmd
-     cd /d c:\Zhuang\Source\health_platform
+     cd /d <YOUR_PROJECT_ROOT>
      echo Operational Terminal Ready
      ```
 
-   - 自此以后：
-     - **所有测试、脚本、一次性命令（如 `python -m pytest -q`）只允许在 Terminal 3 执行**；
-     - Terminal 1 只负责后端，Terminal 2 只负责前端，严禁在这两个终端执行其他命令，以避免出现 "终止批处理操作吗 (Y/N)?" 导致服务被意外停止的问题。
+   > **Note**: Replace `<YOUR_PROJECT_ROOT>` with your actual project directory path (e.g., `c:\Zhuang\Source\health_platform` or `D:\Projects\health_platform`)
+
+   - From now on:
+     - **All tests, scripts, and one-time commands (e.g., `python -m pytest -q`) are only allowed in Terminal 3**;
+     - Terminal 1 is for backend only, Terminal 2 is for frontend only. Never execute other commands in these two terminals to avoid the "Terminate batch job (Y/N)?" prompt that could accidentally stop services.
+
+```
