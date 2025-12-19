@@ -49,6 +49,14 @@ Client → Service (HTTP) → Manager (DB) → Models
 | 前端核心 | `frontend/src/pages/HealthRecords.js`, `frontend/src/services/api.js` |
 | 测试 | `tests/test_health.py`, `tests/e2e/tests/` |
 
+### AI 协作工作流 (Custom Agents)
+本项目定义了标准的 AI 协作角色，请在对应阶段优先使用：
+- **需求阶段**: `@Product_Manager` -> 产出 `/docs/requirements/` + GitHub Issue
+- **设计阶段**: `@System_Architect` -> 产出 `/docs/design/`
+- **计划阶段**: `@Tech_Lead_Planner` -> 产出 `/docs/plan/`
+- **开发阶段**: `@Developer` -> 产出代码与测试
+- **全流程**: 使用 `.github/prompts/feature-workflow.prompt.md` 串联所有角色。
+
 ### 相关文档
 - **[开发环境搭建](../docs/DEVELOPMENT.md)** - 环境配置、启动命令、测试运行
 - **[贡献指南](../CONTRIBUTING.md)** - 代码规范、Git 提交、版本发布

@@ -25,6 +25,7 @@ import Profile from './pages/Profile';
 import Members from './pages/Members';
 import Settings from './pages/Settings';
 import AdminUsers from './pages/AdminUsers';
+import SuperAdminSettings from './pages/SuperAdminSettings';
 import { MemberProvider } from './context/MemberContext';
 import { isAuthenticated, getMustChangeFromToken } from './utils/auth';
 import ChangePassword from './pages/ChangePassword';
@@ -87,7 +88,7 @@ function App() {
 
   return (
     <ConfigProvider locale={antdLocale}>
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <MemberProvider>
         <div className="App">
           <Routes>
@@ -116,6 +117,7 @@ function App() {
               <Route path="profile" element={<Profile />} />
               <Route path="settings" element={<Settings />} />
               <Route path="admin/users" element={<AdminUsers />} />
+              <Route path="super-admin/settings" element={<SuperAdminSettings />} />
             </Route>
             {/* Change Password (standalone to avoid loading Layout) */}
             <Route path="/change-password" element={

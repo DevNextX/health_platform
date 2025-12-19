@@ -1,5 +1,6 @@
 from __future__ import with_statement
 import logging
+print("DEBUG: Loading env.py")
 from logging.config import fileConfig
 from alembic import context
 from flask import current_app
@@ -12,8 +13,8 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 logger = logging.getLogger('alembic.env')
 
-config.set_main_option('sqlalchemy.url', str(current_app.extensions['sqlalchemy'].db.engine.url).replace('%', '%%'))
-target_metadata = current_app.extensions['sqlalchemy'].db.metadata
+config.set_main_option('sqlalchemy.url', str(current_app.extensions['sqlalchemy'].engine.url).replace('%', '%%'))
+target_metadata = current_app.extensions['sqlalchemy'].metadata
 
 def run_migrations_offline():
     url = config.get_main_option('sqlalchemy.url')
@@ -26,7 +27,7 @@ def run_migrations_offline():
 
 
 def run_migrations_online():
-    connectable = current_app.extensions['sqlalchemy'].db.engine
+    connectable = current_app.extensions['sqlalchemy'].engine
 
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)

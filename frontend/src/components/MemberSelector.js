@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { Select, Spin, message } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { memberAPI } from '../services/api';
+import { isAuthenticated } from '../utils/auth';
 
 const MemberSelector = ({ value, onChange, style }) => {
   const { t } = useTranslation();
@@ -13,6 +14,11 @@ const MemberSelector = ({ value, onChange, style }) => {
 
   useEffect(() => {
     const load = async () => {
+      // Prevent API calls if user is not authenticated (e.g., during logout)
+      if (!isAuthenticated()) {
+        return;
+      }
+      
       try {
         setLoading(true);
         const resp = await memberAPI.list();
@@ -24,14 +30,18 @@ const MemberSelector = ({ value, onChange, style }) => {
         }
       } catch (e) {
         console.error('Failed to load members', e);
-    message.error(t('members.messages.loadFail'));
+        // Silent fail on 401 (logout scenario)
+        if (e.response?.status !== 401) {
+          message.error(t('members.messages.loadFail'));
+        }
         onChange?.(undefined);
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, [onChange, value, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t]);
 
   // Auto-select default when not set
   useEffect(() => {

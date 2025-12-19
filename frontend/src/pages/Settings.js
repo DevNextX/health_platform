@@ -125,13 +125,13 @@ const ChangePasswordInline = () => {
       <Col xs={24} md={14}>
         <Form form={form} layout="vertical" onFinish={onFinish}>
           <Form.Item label={t('settings.password.current') || '当前密码'} name="current_password" rules={[{ required: true, message: t('settings.password.currentReq') || '请输入当前密码' }]}>
-            <Input.Password placeholder={t('settings.password.current') || '当前密码'} />
+            <Input.Password placeholder={t('settings.password.current') || '当前密码'} autoComplete="current-password" />
           </Form.Item>
           <Form.Item label={t('settings.password.new') || '新密码'} name="new_password" rules={[{ required: true, message: t('settings.password.newReq') || '请输入新密码（至少8位，包含字母和数字）' }]}>
-            <Input.Password placeholder={t('settings.password.new') || '新密码'} onChange={(e) => setPwd(e.target.value)} />
+            <Input.Password placeholder={t('settings.password.new') || '新密码'} onChange={(e) => setPwd(e.target.value)} autoComplete="new-password" />
           </Form.Item>
           <Form.Item label={t('settings.password.confirm') || '确认新密码'} name="confirm_password" rules={[{ required: true, message: t('settings.password.confirmReq') || '请再次输入新密码' }]}>
-            <Input.Password placeholder={t('settings.password.confirm') || '确认新密码'} />
+            <Input.Password placeholder={t('settings.password.confirm') || '确认新密码'} autoComplete="new-password" />
           </Form.Item>
           <Form.Item>
             <Button type="primary" htmlType="submit" loading={loading}>{t('settings.password.submit') || '提交'}</Button>
