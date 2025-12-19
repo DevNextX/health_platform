@@ -814,3 +814,137 @@ def batch_import():
 def batch_import_options():
     """Handle CORS preflight for batch import endpoint"""
     return "", 204
+
+
+@health_bp.route("/batch-import/template", methods=["GET"])
+@jwt_required()
+def download_import_template():
+    """
+    Download batch import template (Excel or CSV format).
+    Query parameter: format=excel or format=csv (default: excel)
+    """
+    format_type = request.args.get('format', 'excel').lower()
+    
+    if format_type not in ['excel', 'csv']:
+        return jsonify(error("400", "Invalid format. Use 'excel' or 'csv'")), 400
+    
+    import pandas as pd
+    from flask import Response
+    
+    # Create template data with example records
+    template_data = {
+        '成员名称': ['Self', '张三', 'Self'],
+        '测量时间': ['2025-12-19 08:30:00', '2025-12-18 20:00:00', '2025-12-17 09:00:00'],
+        '收缩压': [120, 135, 118],
+        '舒张压': [80, 85, 78],
+        '心率': [72, 78, 70],
+        '标签': ['晨起;空腹', '晚餐后', '运动后'],
+        '备注': ['早晨测量', '感觉有点头晕', '跑步30分钟后']
+    }
+    
+    # Add English headers row as comment
+    english_headers = {
+        'Member Name': ['Self', 'Zhang San', 'Self'],
+        'Timestamp': ['2025-12-19 08:30:00', '2025-12-18 20:00:00', '2025-12-17 09:00:00'],
+        'Systolic': [120, 135, 118],
+        'Diastolic': [80, 85, 78],
+        'Heart Rate': [72, 78, 70],
+        'Tags': ['morning;fasting', 'after dinner', 'after exercise'],
+        'Note': ['Morning measurement', 'Feel a little dizzy', 'After 30min running']
+    }
+    
+    if format_type == 'excel':
+        # Create Excel file with both Chinese and English sheets
+        from io import BytesIO
+        
+        buffer = BytesIO()
+        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+            pd.DataFrame(template_data).to_excel(writer, sheet_name='中文模板', index=False)
+            pd.DataFrame(english_headers).to_excel(writer, sheet_name='English Template', index=False)
+        
+        buffer.seek(0)
+        
+        return Response(
+            buffer.getvalue(),
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={
+                'Content-Disposition': f'attachment; filename="health_records_import_template.xlsx"; filename*=UTF-8\'\'{quote("健康记录导入模板.xlsx")}'
+            }
+        )
+    else:
+        # CSV format (Chinese by default)
+        df = pd.DataFrame(template_data)
+        csv_buffer = StringIO()
+        df.to_csv(csv_buffer, index=False, encoding='utf-8-sig')
+        csv_data = csv_buffer.getvalue()
+        
+        return Response(
+            csv_data,
+            mimetype='text/csv; charset=utf-8',
+            headers={
+                'Content-Disposition': f'attachment; filename="health_records_import_template.csv"; filename*=UTF-8\'\'{quote("健康记录导入模板.csv")}'
+            }
+        )
+
+
+@health_bp.route("/batch-import/template", methods=["OPTIONS"])
+def download_import_template_options():
+    """Handle CORS preflight for template download endpoint"""
+    return "", 204
+
+
+@health_bp.route("/batch-import/errors", methods=["POST"])
+@jwt_required()
+def download_import_errors():
+    """
+    Download import error log as CSV.
+    Expects JSON body with error records from a previous import.
+    """
+    data = request.get_json(force=True) or {}
+    error_records = data.get('errors', [])
+    
+    if not error_records:
+        return jsonify(error("400", "No error records provided")), 400
+    
+    # Create CSV with error details
+    buf = StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(['行号', '成员名称', '测量时间', '收缩压', '舒张压', '心率', '标签', '备注', '错误信息'])
+    
+    for err_rec in error_records:
+        row_num = err_rec.get('row', '')
+        row_data = err_rec.get('data', {})
+        errors = err_rec.get('errors', [])
+        
+        writer.writerow([
+            row_num,
+            row_data.get('member_name', ''),
+            row_data.get('timestamp', ''),
+            row_data.get('systolic', ''),
+            row_data.get('diastolic', ''),
+            row_data.get('heart_rate', ''),
+            row_data.get('tags', ''),
+            row_data.get('note', ''),
+            '; '.join(errors)
+        ])
+    
+    csv_data = '\ufeff' + buf.getvalue()  # Add BOM for Excel
+    
+    from datetime import datetime
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f'import_errors_{timestamp}.csv'
+    
+    from flask import Response
+    return Response(
+        csv_data,
+        mimetype='text/csv; charset=utf-8',
+        headers={
+            'Content-Disposition': f'attachment; filename="{filename}"; filename*=UTF-8\'\'{quote(filename)}'
+        }
+    )
+
+
+@health_bp.route("/batch-import/errors", methods=["OPTIONS"])
+def download_import_errors_options():
+    """Handle CORS preflight for error download endpoint"""
+    return "", 204

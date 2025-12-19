@@ -310,3 +310,125 @@ Self,2025-12-19 08:30:00,120,80"""
                                content_type='multipart/form-data')
         
         assert response.status_code == 401
+
+
+class TestBatchImportTemplate:
+    """Test batch import template and error export"""
+    
+    def test_download_template_excel(self, client, auth_headers):
+        """Test downloading Excel template"""
+        access_headers = auth_headers['access']
+        
+        response = client.get('/api/v1/health/batch-import/template?format=excel',
+                             headers=access_headers)
+        
+        assert response.status_code == 200
+        assert response.mimetype == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        assert 'attachment' in response.headers['Content-Disposition']
+        assert len(response.data) > 0
+    
+    def test_download_template_csv(self, client, auth_headers):
+        """Test downloading CSV template"""
+        access_headers = auth_headers['access']
+        
+        response = client.get('/api/v1/health/batch-import/template?format=csv',
+                             headers=access_headers)
+        
+        assert response.status_code == 200
+        assert 'text/csv' in response.mimetype
+        assert 'attachment' in response.headers['Content-Disposition']
+        # Check if contains expected headers
+        content = response.data.decode('utf-8-sig')
+        assert '成员名称' in content or 'Member Name' in content
+    
+    def test_download_template_default_format(self, client, auth_headers):
+        """Test downloading template with default format (Excel)"""
+        access_headers = auth_headers['access']
+        
+        response = client.get('/api/v1/health/batch-import/template',
+                             headers=access_headers)
+        
+        assert response.status_code == 200
+        # Default should be Excel
+        assert response.mimetype == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    
+    def test_download_template_invalid_format(self, client, auth_headers):
+        """Test downloading template with invalid format"""
+        access_headers = auth_headers['access']
+        
+        response = client.get('/api/v1/health/batch-import/template?format=invalid',
+                             headers=access_headers)
+        
+        assert response.status_code == 400
+        result = response.get_json()
+        assert 'Invalid format' in result['message']
+    
+    def test_download_template_unauthorized(self, client):
+        """Test downloading template without authorization"""
+        response = client.get('/api/v1/health/batch-import/template')
+        assert response.status_code == 401
+    
+    def test_download_error_log(self, client, auth_headers):
+        """Test downloading error log CSV"""
+        access_headers = auth_headers['access']
+        
+        error_data = {
+            'errors': [
+                {
+                    'row': 2,
+                    'data': {
+                        'member_name': 'Test',
+                        'timestamp': '2025-12-19 08:30:00',
+                        'systolic': 25,
+                        'diastolic': 80
+                    },
+                    'errors': ['Systolic must be between 30-250 mmHg']
+                },
+                {
+                    'row': 3,
+                    'data': {
+                        'member_name': 'Invalid',
+                        'timestamp': '2025-12-19 09:00:00',
+                        'systolic': 120,
+                        'diastolic': 80
+                    },
+                    'errors': ["Member 'Invalid' not found"]
+                }
+            ]
+        }
+        
+        response = client.post('/api/v1/health/batch-import/errors',
+                              json=error_data,
+                              headers=access_headers)
+        
+        assert response.status_code == 200
+        assert 'text/csv' in response.mimetype
+        assert 'attachment' in response.headers['Content-Disposition']
+        
+        # Check CSV content
+        content = response.data.decode('utf-8-sig')
+        assert '行号' in content
+        assert 'Systolic must be between 30-250' in content
+    
+    def test_download_error_log_no_errors(self, client, auth_headers):
+        """Test downloading error log with no errors"""
+        access_headers = auth_headers['access']
+        
+        response = client.post('/api/v1/health/batch-import/errors',
+                              json={'errors': []},
+                              headers=access_headers)
+        
+        assert response.status_code == 400
+        result = response.get_json()
+        assert 'No error records' in result['message']
+    
+    def test_download_error_log_unauthorized(self, client):
+        """Test downloading error log without authorization"""
+        error_data = {
+            'errors': [{'row': 2, 'data': {}, 'errors': ['test']}]
+        }
+        
+        response = client.post('/api/v1/health/batch-import/errors',
+                              json=error_data)
+        
+        assert response.status_code == 401
