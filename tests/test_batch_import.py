@@ -2,7 +2,7 @@
 Test cases for batch import health records functionality.
 """
 import pytest
-from io import BytesIO
+from io import BytesIO, StringIO
 import pandas as pd
 from datetime import datetime
 
@@ -235,12 +235,12 @@ Self,2025-12-19 08:30:00,120,80
             '舒张压': [80] * 1001
         })
         
-        csv_buffer = BytesIO()
-        df.to_csv(csv_buffer, index=False, encoding='utf-8-sig')
-        csv_buffer.seek(0)
+        csv_buffer = StringIO()
+        df.to_csv(csv_buffer, index=False)
+        csv_content = csv_buffer.getvalue()
         
         data = {
-            'file': (csv_buffer, 'too_many_records.csv')
+            'file': (BytesIO(csv_content.encode('utf-8-sig')), 'too_many_records.csv')
         }
         
         response = client.post('/api/v1/health/batch-import',
