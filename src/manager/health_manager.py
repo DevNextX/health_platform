@@ -103,3 +103,27 @@ class HealthManager:
     def delete(self, rec: HealthRecord):
         db.session.delete(rec)
         db.session.commit()
+
+    @db_breaker
+    @with_retry()
+    def bulk_create(self, records: List[dict]) -> List[HealthRecord]:
+        """
+        Batch insert health records.
+        Each record dict should contain: user_id, systolic, diastolic, heart_rate, timestamp, tags, note
+        Returns list of created HealthRecord objects.
+        """
+        objects = []
+        for rec_data in records:
+            rec = HealthRecord()
+            rec.user_id = rec_data['user_id']
+            rec.systolic = rec_data['systolic']
+            rec.diastolic = rec_data['diastolic']
+            rec.heart_rate = rec_data.get('heart_rate')
+            rec.timestamp = rec_data['timestamp']
+            rec.tags = json.dumps(rec_data.get('tags', []), ensure_ascii=False)
+            rec.note = rec_data.get('note')
+            objects.append(rec)
+        
+        db.session.bulk_save_objects(objects, return_defaults=True)
+        db.session.commit()
+        return objects

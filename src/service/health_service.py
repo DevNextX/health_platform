@@ -497,3 +497,320 @@ def delete_record(rec_id: int):
     RecordSubject.query.filter_by(record_id=rec.id).delete()
     manager.delete(rec)
     return jsonify({"message": "Record deleted successfully."}), 200
+
+
+@health_bp.route("/batch-import", methods=["POST"])
+@jwt_required()
+def batch_import():
+    """
+    Batch import health records from Excel or CSV file.
+    Accepts multipart/form-data with a 'file' field.
+    Returns summary of import results with success/error counts.
+    """
+    user_id = get_jwt_identity()
+    
+    # Check if file is present
+    if 'file' not in request.files:
+        return jsonify(error("400", "No file provided")), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify(error("400", "No file selected")), 400
+    
+    # Check file size (5MB limit)
+    file.seek(0, 2)  # Seek to end
+    file_size = file.tell()
+    file.seek(0)  # Reset to beginning
+    
+    MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+    if file_size > MAX_FILE_SIZE:
+        return jsonify(error("400", "File size exceeds 5MB limit")), 400
+    
+    # Check file extension
+    filename = file.filename.lower()
+    if not (filename.endswith('.xlsx') or filename.endswith('.csv')):
+        return jsonify(error("400", "Only .xlsx and .csv files are supported")), 400
+    
+    try:
+        # Parse file based on type
+        import pandas as pd
+        from zoneinfo import ZoneInfo
+        from dateutil import parser as date_parser
+        
+        if filename.endswith('.xlsx'):
+            df = pd.read_excel(file, engine='openpyxl')
+        else:
+            # CSV with UTF-8 BOM support
+            df = pd.read_csv(file, encoding='utf-8-sig')
+        
+        # Validate required columns (support both Chinese and English headers)
+        required_cols = {
+            'member_name': ['成员名称', 'Member Name', 'member_name'],
+            'timestamp': ['测量时间', 'Timestamp', 'timestamp'],
+            'systolic': ['收缩压', 'Systolic', 'systolic'],
+            'diastolic': ['舒张压', 'Diastolic', 'diastolic']
+        }
+        
+        # Map column names to standard names
+        col_mapping = {}
+        for standard_name, possible_names in required_cols.items():
+            found = False
+            for col in df.columns:
+                if col in possible_names:
+                    col_mapping[col] = standard_name
+                    found = True
+                    break
+            if not found:
+                return jsonify(error("400", f"Missing required column: {possible_names[0]}")), 400
+        
+        # Optional columns
+        optional_cols = {
+            'heart_rate': ['心率', 'Heart Rate', 'heart_rate'],
+            'tags': ['标签', 'Tags', 'tags'],
+            'note': ['备注', 'Note', 'note']
+        }
+        
+        for standard_name, possible_names in optional_cols.items():
+            for col in df.columns:
+                if col in possible_names:
+                    col_mapping[col] = standard_name
+                    break
+        
+        # Rename columns
+        df = df.rename(columns=col_mapping)
+        
+        # Limit to 1000 records
+        MAX_RECORDS = 1000
+        if len(df) > MAX_RECORDS:
+            return jsonify(error("400", f"Maximum {MAX_RECORDS} records allowed per import")), 400
+        
+        # Get user's household and members for validation
+        hh = member_mgr.ensure_default_household(user_id)
+        members = member_mgr.list_members(user_id)
+        
+        # Build member name lookup (case-insensitive, trimmed)
+        member_lookup = {}
+        for m in members:
+            name_normalized = (m.full_name or '').strip().lower()
+            member_lookup[name_normalized] = m
+        
+        # Also map "自己", "本人" to Self member
+        self_member = member_mgr.get_or_create_self_member(user_id)
+        member_lookup['self'] = self_member
+        member_lookup['自己'] = self_member
+        member_lookup['本人'] = self_member
+        
+        # Beijing timezone for default
+        beijing_tz = ZoneInfo("Asia/Shanghai")
+        
+        # Process each row
+        success_records = []
+        error_records = []
+        
+        for idx, row in df.iterrows():
+            row_num = idx + 2  # Excel/CSV row number (1-indexed + header)
+            row_errors = []
+            
+            try:
+                # Validate member name
+                member_name = str(row.get('member_name', '')).strip()
+                if not member_name or pd.isna(row.get('member_name')):
+                    row_errors.append("Member name is required")
+                    error_records.append({
+                        'row': row_num,
+                        'data': row.to_dict(),
+                        'errors': row_errors
+                    })
+                    continue
+                
+                member_name_normalized = member_name.lower()
+                if member_name_normalized not in member_lookup:
+                    row_errors.append(f"Member '{member_name}' not found in your household")
+                    error_records.append({
+                        'row': row_num,
+                        'data': row.to_dict(),
+                        'errors': row_errors
+                    })
+                    continue
+                
+                member = member_lookup[member_name_normalized]
+                
+                # Parse timestamp
+                timestamp_raw = row.get('timestamp')
+                if pd.isna(timestamp_raw) or not timestamp_raw:
+                    row_errors.append("Timestamp is required")
+                    error_records.append({
+                        'row': row_num,
+                        'data': row.to_dict(),
+                        'errors': row_errors
+                    })
+                    continue
+                
+                try:
+                    if isinstance(timestamp_raw, pd.Timestamp):
+                        dt = timestamp_raw.to_pydatetime()
+                    elif isinstance(timestamp_raw, datetime):
+                        dt = timestamp_raw
+                    else:
+                        # Try parsing string
+                        dt = date_parser.parse(str(timestamp_raw))
+                    
+                    # If no timezone, assume Beijing time
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=beijing_tz)
+                    
+                    # Convert to UTC for storage
+                    dt_utc = dt.astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
+                except Exception as e:
+                    row_errors.append(f"Invalid timestamp format: {str(e)}")
+                    error_records.append({
+                        'row': row_num,
+                        'data': row.to_dict(),
+                        'errors': row_errors
+                    })
+                    continue
+                
+                # Validate systolic
+                systolic_raw = row.get('systolic')
+                if pd.isna(systolic_raw):
+                    row_errors.append("Systolic pressure is required")
+                else:
+                    try:
+                        systolic = int(float(systolic_raw))
+                        if not (30 <= systolic <= 250):
+                            row_errors.append("Systolic must be between 30-250 mmHg")
+                    except (TypeError, ValueError):
+                        row_errors.append("Systolic must be a valid number")
+                        systolic = None
+                
+                # Validate diastolic
+                diastolic_raw = row.get('diastolic')
+                if pd.isna(diastolic_raw):
+                    row_errors.append("Diastolic pressure is required")
+                else:
+                    try:
+                        diastolic = int(float(diastolic_raw))
+                        if not (30 <= diastolic <= 250):
+                            row_errors.append("Diastolic must be between 30-250 mmHg")
+                    except (TypeError, ValueError):
+                        row_errors.append("Diastolic must be a valid number")
+                        diastolic = None
+                
+                # Validate systolic > diastolic
+                if systolic and diastolic and systolic <= diastolic:
+                    row_errors.append("Systolic must be greater than diastolic")
+                
+                # Validate heart rate (optional)
+                heart_rate = None
+                heart_rate_raw = row.get('heart_rate')
+                if not pd.isna(heart_rate_raw) and heart_rate_raw != '':
+                    try:
+                        heart_rate = int(float(heart_rate_raw))
+                        if not (30 <= heart_rate <= 150):
+                            row_errors.append("Heart rate must be between 30-150 bpm")
+                            heart_rate = None
+                    except (TypeError, ValueError):
+                        row_errors.append("Heart rate must be a valid number")
+                        heart_rate = None
+                
+                # Parse tags (optional)
+                tags = []
+                tags_raw = row.get('tags')
+                if not pd.isna(tags_raw) and tags_raw:
+                    tags_str = str(tags_raw).strip()
+                    if tags_str:
+                        # Split by semicolon or comma
+                        if ';' in tags_str:
+                            tags = [t.strip() for t in tags_str.split(';') if t.strip()]
+                        elif ',' in tags_str:
+                            tags = [t.strip() for t in tags_str.split(',') if t.strip()]
+                        else:
+                            tags = [tags_str]
+                
+                # Parse note (optional)
+                note = None
+                note_raw = row.get('note')
+                if not pd.isna(note_raw) and note_raw:
+                    note = str(note_raw).strip()
+                    if len(note) > 500:
+                        row_errors.append("Note must be at most 500 characters")
+                        note = note[:500]
+                
+                # If there are validation errors, skip this row
+                if row_errors:
+                    error_records.append({
+                        'row': row_num,
+                        'data': row.to_dict(),
+                        'errors': row_errors
+                    })
+                    continue
+                
+                # Add to success list
+                success_records.append({
+                    'user_id': user_id,
+                    'member_id': member.id,
+                    'systolic': systolic,
+                    'diastolic': diastolic,
+                    'heart_rate': heart_rate,
+                    'timestamp': dt_utc,
+                    'tags': tags,
+                    'note': note
+                })
+                
+            except Exception as e:
+                row_errors.append(f"Unexpected error: {str(e)}")
+                error_records.append({
+                    'row': row_num,
+                    'data': row.to_dict() if hasattr(row, 'to_dict') else {},
+                    'errors': row_errors
+                })
+        
+        # Insert successful records in batch
+        if success_records:
+            # Create health records
+            health_records_data = []
+            for rec in success_records:
+                health_records_data.append({
+                    'user_id': rec['user_id'],
+                    'systolic': rec['systolic'],
+                    'diastolic': rec['diastolic'],
+                    'heart_rate': rec['heart_rate'],
+                    'timestamp': rec['timestamp'],
+                    'tags': rec['tags'],
+                    'note': rec['note']
+                })
+            
+            created_records = manager.bulk_create(health_records_data)
+            
+            # Create RecordSubject mappings
+            from ..extensions import db
+            for i, rec_obj in enumerate(created_records):
+                rs = RecordSubject()
+                rs.record_id = rec_obj.id
+                rs.household_id = hh.id
+                rs.member_id = success_records[i]['member_id']
+                rs.created_by_user_id = user_id
+                db.session.add(rs)
+            db.session.commit()
+        
+        # Return summary
+        return jsonify({
+            'success': True,
+            'summary': {
+                'total_rows': len(df),
+                'success_count': len(success_records),
+                'error_count': len(error_records)
+            },
+            'errors': error_records[:100]  # Limit error details to first 100
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify(error("500", f"Failed to process file: {str(e)}")), 500
+
+
+@health_bp.route("/batch-import", methods=["OPTIONS"])
+def batch_import_options():
+    """Handle CORS preflight for batch import endpoint"""
+    return "", 204
