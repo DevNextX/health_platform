@@ -19,12 +19,17 @@ import {
   Row,
   Col,
   Typography,
+  Upload,
+  Alert,
+  Divider,
 } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   DownloadOutlined,
+  UploadOutlined,
+  CloudUploadOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { healthAPI } from '../services/api';
@@ -38,6 +43,7 @@ import HealthStandardsReference from '../components/HealthStandardsReference';
 
 const { TextArea } = Input;
 const { Title } = Typography;
+const { Dragger } = Upload;
 
 const HealthRecords = () => {
   const { t } = useTranslation();
@@ -60,6 +66,13 @@ const HealthRecords = () => {
   const [tagOptions, setTagOptions] = useState([]);
   // Active threshold configuration for dynamic status computation
   const [activeThreshold, setActiveThreshold] = useState(null);
+  
+  // Batch import states
+  const [batchImportModalVisible, setBatchImportModalVisible] = useState(false);
+  const [batchImportFile, setBatchImportFile] = useState(null);
+  const [batchImportLoading, setBatchImportLoading] = useState(false);
+  const [batchImportResult, setBatchImportResult] = useState(null);
+  const [batchImportStep, setBatchImportStep] = useState('upload'); // 'upload' or 'result'
 
   // Fetch active threshold configuration
   const fetchActiveThreshold = useCallback(async () => {
@@ -368,11 +381,141 @@ const HealthRecords = () => {
     }
   };
 
+  // Batch import handlers
+  const handleBatchImportOpen = () => {
+    setBatchImportModalVisible(true);
+    setBatchImportStep('upload');
+    setBatchImportFile(null);
+    setBatchImportResult(null);
+  };
+
+  const handleBatchImportClose = () => {
+    setBatchImportModalVisible(false);
+    setBatchImportFile(null);
+    setBatchImportResult(null);
+    setBatchImportStep('upload');
+  };
+
+  const handleTemplateDownload = async (format) => {
+    try {
+      const response = await healthAPI.downloadTemplate(format);
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = format === 'excel' 
+        ? 'health_records_template.xlsx' 
+        : 'health_records_template.csv';
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Template download failed:', error);
+      message.error(t('health.batchImport.messages.templateDownloadFail'));
+    }
+  };
+
+  const handleBatchImport = async () => {
+    if (!batchImportFile) {
+      message.warning(t('health.batchImport.uploadHint'));
+      return;
+    }
+
+    try {
+      setBatchImportLoading(true);
+      const formData = new FormData();
+      formData.append('file', batchImportFile);
+
+      const response = await healthAPI.batchImport(formData);
+      const result = response.data;
+
+      setBatchImportResult(result);
+      setBatchImportStep('result');
+
+      if (result.summary.error_count === 0) {
+        message.success(
+          t('health.batchImport.messages.importSuccess', { 
+            count: result.summary.success_count 
+          })
+        );
+        // Refresh records list
+        fetchRecords();
+      } else {
+        message.warning(
+          t('health.batchImport.messages.importPartialSuccess', {
+            success: result.summary.success_count,
+            failed: result.summary.error_count
+          })
+        );
+      }
+    } catch (error) {
+      console.error('Batch import failed:', error);
+      const errorMessage = error.response?.data?.message || t('health.batchImport.messages.importFail');
+      message.error(errorMessage);
+    } finally {
+      setBatchImportLoading(false);
+    }
+  };
+
+  const handleErrorLogDownload = async () => {
+    if (!batchImportResult || !batchImportResult.errors || batchImportResult.errors.length === 0) {
+      return;
+    }
+
+    try {
+      const response = await healthAPI.downloadErrorLog(batchImportResult.errors);
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `import_errors_${Date.now()}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error log download failed:', error);
+      message.error(t('health.batchImport.messages.errorLogDownloadFail'));
+    }
+  };
+
+  const uploadProps = {
+    name: 'file',
+    multiple: false,
+    maxCount: 1,
+    accept: '.xlsx,.csv',
+    beforeUpload: (file) => {
+      // Check file size (5MB)
+      const isLt5M = file.size / 1024 / 1024 < 5;
+      if (!isLt5M) {
+        message.error(t('health.batchImport.messages.fileTooLarge'));
+        return Upload.LIST_IGNORE;
+      }
+
+      // Check file type
+      const isValidType = file.name.endsWith('.xlsx') || file.name.endsWith('.csv');
+      if (!isValidType) {
+        message.error(t('health.batchImport.messages.invalidFormat'));
+        return Upload.LIST_IGNORE;
+      }
+
+      setBatchImportFile(file);
+      return false; // Prevent auto upload
+    },
+    onRemove: () => {
+      setBatchImportFile(null);
+    },
+    fileList: batchImportFile ? [batchImportFile] : [],
+  };
+
   return (
     <div>
       <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
     <Title level={2}>{t('health.title')}</Title>
         <Space size={12} wrap>
+          <Button
+            icon={<CloudUploadOutlined />}
+            onClick={handleBatchImportOpen}
+          >
+            {t('health.batchImport.button')}
+          </Button>
           <Button
             icon={<DownloadOutlined />}
             onClick={handleExport}
@@ -585,6 +728,141 @@ const HealthRecords = () => {
             }}
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Batch Import Modal */}
+      <Modal
+        title={t('health.batchImport.title')}
+        open={batchImportModalVisible}
+        onCancel={handleBatchImportClose}
+        width={700}
+        footer={null}
+      >
+        {batchImportStep === 'upload' ? (
+          <div>
+            {/* Template Download Section */}
+            <div style={{ marginBottom: 24 }}>
+              <Title level={5}>{t('health.batchImport.downloadTemplate')}</Title>
+              <Space>
+                <Button
+                  icon={<DownloadOutlined />}
+                  onClick={() => handleTemplateDownload('excel')}
+                >
+                  {t('health.batchImport.templateExcel')}
+                </Button>
+                <Button
+                  icon={<DownloadOutlined />}
+                  onClick={() => handleTemplateDownload('csv')}
+                >
+                  {t('health.batchImport.templateCsv')}
+                </Button>
+              </Space>
+            </div>
+
+            <Divider />
+
+            {/* File Upload Section */}
+            <div style={{ marginBottom: 24 }}>
+              <Title level={5}>{t('health.batchImport.uploadTitle')}</Title>
+              <Dragger {...uploadProps}>
+                <p className="ant-upload-drag-icon">
+                  <UploadOutlined style={{ fontSize: 48, color: '#1890ff' }} />
+                </p>
+                <p className="ant-upload-text">{t('health.batchImport.uploadHint')}</p>
+                <p className="ant-upload-hint">
+                  {t('health.batchImport.uploadDescription')}
+                </p>
+              </Dragger>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ textAlign: 'right' }}>
+              <Space>
+                <Button onClick={handleBatchImportClose}>
+                  {t('health.batchImport.cancel')}
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<CloudUploadOutlined />}
+                  onClick={handleBatchImport}
+                  loading={batchImportLoading}
+                  disabled={!batchImportFile}
+                >
+                  {t('health.batchImport.import')}
+                </Button>
+              </Space>
+            </div>
+          </div>
+        ) : (
+          <div>
+            {/* Import Results */}
+            <Title level={5}>{t('health.batchImport.results.title')}</Title>
+            
+            {batchImportResult && (
+              <div>
+                <Alert
+                  message={
+                    <div>
+                      <div>{t('health.batchImport.results.total', { total: batchImportResult.summary.total_rows })}</div>
+                      <div style={{ color: '#52c41a' }}>
+                        {t('health.batchImport.results.success', { count: batchImportResult.summary.success_count })}
+                      </div>
+                      {batchImportResult.summary.error_count > 0 && (
+                        <div style={{ color: '#ff4d4f' }}>
+                          {t('health.batchImport.results.failed', { count: batchImportResult.summary.error_count })}
+                        </div>
+                      )}
+                    </div>
+                  }
+                  type={batchImportResult.summary.error_count === 0 ? 'success' : 'warning'}
+                  style={{ marginBottom: 16 }}
+                />
+
+                {batchImportResult.errors && batchImportResult.errors.length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <Alert
+                      message={`${t('health.batchImport.results.failed', { count: batchImportResult.errors.length })} - ${t('health.batchImport.results.downloadErrors')}`}
+                      type="error"
+                      showIcon
+                    />
+                    <div style={{ marginTop: 12, maxHeight: 300, overflow: 'auto', border: '1px solid #f0f0f0', padding: 12, borderRadius: 4 }}>
+                      {batchImportResult.errors.slice(0, 10).map((err, idx) => (
+                        <div key={idx} style={{ marginBottom: 8 }}>
+                          <strong>Row {err.row}:</strong> {err.errors.join(', ')}
+                        </div>
+                      ))}
+                      {batchImportResult.errors.length > 10 && (
+                        <div style={{ marginTop: 8, color: '#666' }}>
+                          ... and {batchImportResult.errors.length - 10} more errors
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div style={{ textAlign: 'right' }}>
+                  <Space>
+                    {batchImportResult.errors && batchImportResult.errors.length > 0 && (
+                      <Button
+                        icon={<DownloadOutlined />}
+                        onClick={handleErrorLogDownload}
+                      >
+                        {t('health.batchImport.results.downloadErrors')}
+                      </Button>
+                    )}
+                    <Button onClick={() => setBatchImportStep('upload')}>
+                      {t('health.batchImport.results.backToUpload')}
+                    </Button>
+                    <Button type="primary" onClick={handleBatchImportClose}>
+                      {t('health.batchImport.results.close')}
+                    </Button>
+                  </Space>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
 
   {/* Generated by Zhuang */}
