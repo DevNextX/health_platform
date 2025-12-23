@@ -188,8 +188,13 @@ def create_record():
         m = member_mgr.get_or_create_self_member(user_id)
         subject_member_id = m.id
 
+    # Check for duplicate BEFORE creating the record
+    if manager.check_duplicate(subject_member_id, ts):
+        return jsonify(error("400", f"该成员在 {ts.strftime('%Y-%m-%d %H:%M')} 已有健康记录")), 400
+
     rec = manager.create(user_id=user_id, systolic=systolic, diastolic=diastolic, heart_rate=heart_rate,
                          timestamp=ts, tags=tags, note=note)
+    
     # Link record to subject
     rs = RecordSubject()
     hh = member_mgr.ensure_default_household(user_id)
@@ -748,6 +753,7 @@ def batch_import():
                 success_records.append({
                     'user_id': user_id,
                     'member_id': member.id,
+                    'member_name': member.full_name,
                     'systolic': systolic,
                     'diastolic': diastolic,
                     'heart_rate': heart_rate,
@@ -765,12 +771,15 @@ def batch_import():
                 })
         
         # Insert successful records in batch
+        skipped_records = []
         if success_records:
             # Create health records
             health_records_data = []
             for rec in success_records:
                 health_records_data.append({
                     'user_id': rec['user_id'],
+                    'member_id': rec['member_id'],
+                    'member_name': rec['member_name'],
                     'systolic': rec['systolic'],
                     'diastolic': rec['diastolic'],
                     'heart_rate': rec['heart_rate'],
@@ -779,15 +788,26 @@ def batch_import():
                     'note': rec['note']
                 })
             
-            created_records = manager.bulk_create(health_records_data)
+            bulk_result = manager.bulk_create(health_records_data)
+            created_records = bulk_result['created']
+            skipped_records = bulk_result['skipped']
             
-            # Create RecordSubject mappings
+            # Create RecordSubject mappings for successfully created records
             from ..extensions import db
             for i, rec_obj in enumerate(created_records):
+                # Find corresponding member_id from original data
+                # Need to map back using the index
+                actual_idx = i
+                if skipped_records:
+                    # Adjust index accounting for skipped records
+                    for skip in skipped_records:
+                        if skip['index'] <= actual_idx:
+                            actual_idx += 1
+                
                 rs = RecordSubject()
                 rs.record_id = rec_obj.id
                 rs.household_id = hh.id
-                rs.member_id = success_records[i]['member_id']
+                rs.member_id = success_records[actual_idx]['member_id']
                 rs.created_by_user_id = user_id
                 db.session.add(rs)
             db.session.commit()
@@ -797,10 +817,12 @@ def batch_import():
             'success': True,
             'summary': {
                 'total_rows': len(df),
-                'success_count': len(success_records),
-                'error_count': len(error_records)
+                'success_count': len(success_records) - len(skipped_records),
+                'error_count': len(error_records),
+                'skipped_count': len(skipped_records)
             },
-            'errors': error_records[:100]  # Limit error details to first 100
+            'errors': error_records[:100],  # Limit error details to first 100
+            'skipped': skipped_records[:100]  # Include skipped duplicate records
         }), 200
         
     except Exception as e:
