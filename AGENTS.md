@@ -22,6 +22,10 @@
 - E2E tests require both backend and frontend running; use `cd tests/e2e && npm install && npx playwright install --with-deps && npm run test`.
 - Target high-risk areas with focused tests and update or add cases whenever behavior changes.
 
+## Documentation Placement
+- Keep generated documents inside dedicated folders: `/docs/requirements`, `/docs/design`, `/docs/plan`, `/docs/batch_import`, `/docs/admin`, `/docs/api`, `/docs/architecture`, `/docs/ops`, `/docs/guides`, `/docs/testing`, `/docs/security`, `/docs/releases`, `/docs/reports`, `/docs/workflow`.
+- Avoid adding new Markdown files at the root of `/docs`; place them in an appropriate subfolder or create one if necessary.
+
 ## Commit & Pull Request Guidelines
 - Follow Conventional Commits (e.g., `feat: add appointment scheduler`, `fix: handle empty JWT payload`).
 - PRs should summarize changes, reference related issues, and attach test evidence (logs or screenshots). Include reproduction steps or manual checklists when relevant.
