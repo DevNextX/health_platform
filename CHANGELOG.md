@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.1] - 2025-12-24
+
+### 新增功能
+- **健康记录批量导入**：支持 Excel/CSV 上传导入，包含模板下载、行级校验与错误报告
+
+### 修复
+- **重复记录防护**：同一成员同一分钟内重复创建将被拒绝；批量导入遇到重复将自动跳过并汇总
+
+### 运维
+- **历史重复数据清理**：提供清理脚本与操作建议（详见 `docs/DUPLICATE_RECORDS_FIX_REPORT.md`）
+
 ## [1.0.0] - 2025-11-28
 
 ### 新增功能

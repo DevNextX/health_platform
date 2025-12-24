@@ -107,6 +107,17 @@ export const healthAPI = {
   exportCsv: (params) => api.get('/api/v1/health/export', { params, responseType: 'blob' }),
   // Get active threshold configuration for dynamic status computation
   getActiveThreshold: () => api.get('/api/v1/thresholds/active'),
+  // Batch import APIs
+  batchImport: (formData) => api.post('/api/v1/health/batch-import', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  downloadTemplate: (format = 'excel') => api.get('/api/v1/health/batch-import/template', {
+    params: { format },
+    responseType: 'blob'
+  }),
+  downloadErrorLog: (errors) => api.post('/api/v1/health/batch-import/errors', { errors }, {
+    responseType: 'blob'
+  }),
 };
 
 // Members APIs (simplified family management)
