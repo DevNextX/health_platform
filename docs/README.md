@@ -3,7 +3,7 @@
 目标：最小必要、可追溯、支持敏捷迭代。避免在需求阶段写实现细节，把细节放到正确阶段。
 
 ## 目录结构
-- /docs/requirements/ 需求精炼产物（文件：req-<slug>.md）
+- /docs/Requirements/ 需求精炼产物（文件：req-<slug>.md）
 - /docs/plans/ 实施计划（文件：plan-<slug>.md）
 - /docs/api/ API 契约设计（文件：api-<slug>.md）
 - /docs/templates/ 模板与约定

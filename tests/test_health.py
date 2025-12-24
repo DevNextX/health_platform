@@ -246,7 +246,8 @@ class TestHealthEndpoints:
         assert resp2.status_code == 200
         data2 = resp2.get_json()
         assert data2['summary']['success_count'] == 0
-        assert data2['summary']['skipped_count'] == 2
+        assert data2['summary']['error_count'] == 2
+        assert data2['summary']['skipped_count'] == 0
     
     def test_get_health_record(self, client, auth_headers):
         """Test getting a specific health record"""

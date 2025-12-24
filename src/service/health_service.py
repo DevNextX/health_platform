@@ -751,6 +751,7 @@ def batch_import():
                 
                 # Add to success list
                 success_records.append({
+                    'row_num': row_num,
                     'user_id': user_id,
                     'member_id': member.id,
                     'member_name': member.full_name,
@@ -772,6 +773,7 @@ def batch_import():
         
         # Insert successful records in batch
         skipped_records = []
+        created_records = []
         if success_records:
             # Create health records
             health_records_data = []
@@ -794,30 +796,70 @@ def batch_import():
             
             # Create RecordSubject mappings for successfully created records
             from ..extensions import db
-            for i, rec_obj in enumerate(created_records):
-                # Find corresponding member_id from original data
-                # Need to map back using the index
-                actual_idx = i
-                if skipped_records:
-                    # Adjust index accounting for skipped records
-                    for skip in skipped_records:
-                        if skip['index'] <= actual_idx:
-                            actual_idx += 1
-                
+            skip_indices = {skip['index'] for skip in skipped_records}
+            created_indices = set()
+            created_iter = iter(created_records)
+            for i, rec_data in enumerate(success_records):
+                if i in skip_indices:
+                    continue
+                rec_obj = next(created_iter)
+                created_indices.add(i)
                 rs = RecordSubject()
                 rs.record_id = rec_obj.id
                 rs.household_id = hh.id
-                rs.member_id = success_records[actual_idx]['member_id']
+                rs.member_id = rec_data['member_id']
                 rs.created_by_user_id = user_id
                 db.session.add(rs)
             db.session.commit()
+
+            # Convert skipped (duplicates) into error records so totals align
+            if skipped_records:
+                for skip in skipped_records:
+                    idx = skip.get('index')
+                    if idx is None or idx >= len(success_records):
+                        continue
+                    rec = success_records[idx]
+                    error_records.append({
+                        'row': rec.get('row_num'),
+                        'data': {
+                            'member_name': rec.get('member_name'),
+                            'timestamp': rec.get('timestamp').isoformat() if rec.get('timestamp') else None,
+                            'systolic': rec.get('systolic'),
+                            'diastolic': rec.get('diastolic'),
+                            'heart_rate': rec.get('heart_rate'),
+                            'tags': rec.get('tags'),
+                            'note': rec.get('note')
+                        },
+                        'errors': [f"Duplicate record for member '{rec.get('member_name')}' at the same minute"]
+                    })
+                skipped_records = []
+
+            # Safety net: if some validated rows were neither created nor marked as duplicates, count them as errors
+            accounted_indices = skip_indices.union(created_indices)
+            missing_indices = [i for i in range(len(success_records)) if i not in accounted_indices]
+            if missing_indices:
+                for i in missing_indices:
+                    rec = success_records[i]
+                    error_records.append({
+                        'row': rec.get('row_num'),
+                        'data': {
+                            'member_name': rec.get('member_name'),
+                            'timestamp': rec.get('timestamp').isoformat() if rec.get('timestamp') else None,
+                            'systolic': rec.get('systolic'),
+                            'diastolic': rec.get('diastolic'),
+                            'heart_rate': rec.get('heart_rate'),
+                            'tags': rec.get('tags'),
+                            'note': rec.get('note')
+                        },
+                        'errors': ["Record could not be saved (unknown issue)"]
+                    })
         
         # Return summary
         return jsonify({
             'success': True,
             'summary': {
                 'total_rows': len(df),
-                'success_count': len(success_records) - len(skipped_records),
+                'success_count': len(created_records),
                 'error_count': len(error_records),
                 'skipped_count': len(skipped_records)
             },
