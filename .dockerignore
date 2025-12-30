@@ -20,7 +20,7 @@ coverage
 # Exclude frontend source (will be built in Dockerfile stage 1)
 # but do NOT exclude frontend/package*.json (needed for npm ci)
 frontend/src
-frontend/public
+# frontend/public  # KEEP public/ - contains index.html and static assets needed for build
 frontend/.pytest_cache
 
 # Azure and infra files not needed in runtime image
