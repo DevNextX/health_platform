@@ -28,7 +28,7 @@ frontend/.pytest_cache
 infra
 docs
 tests
-deploy
+#deploy
 *.md
 azure.yaml
 docker-compose*.yml
