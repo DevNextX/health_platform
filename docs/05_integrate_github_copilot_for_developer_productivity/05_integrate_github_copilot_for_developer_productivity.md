@@ -9,9 +9,9 @@ has_children: true
 
 ## Scenario
 
-Zava is dedicated to leveraging AI not only for devops automation and security practices, but also to help with efficient delivery of new features. In this training you will be using Copilot to generate issues for code updates and features, and to implement those updates and features. There will be trade-off between productivity improvements using AI, and what it would take to do the work yourself. 
+JumpStarX is dedicated to leveraging AI not only for DevOps automation and security practices, but also to help with efficient delivery of new features in the Health Platform application. In this training you will be using Copilot to generate issues for code updates and features, and to implement those updates and features. There will be trade-offs between productivity improvements using AI, and what it would take to do the work yourself.
 
-In this exercise, you will first use Copilot to upgrade the current solution from .NET 6 to the latest version of .NET LTS. You'll do this by creating an issue using Copilot, and then implementing the issue. You will then use Copilot to create a Chatbot feature that will use the Phi-4 model to ask questions about products and pricing. This model will at first not be based on Zava data since this solution is not yet connected to a database.
+In this exercise, you will first use Copilot to describe and implement a backend/frontend change for the Health Platform (for example, improving health threshold visualization or member dashboards) by creating an issue using Copilot and then implementing the issue with Copilot’s help. You will then use Copilot to create a chatbot-style feature that uses the Phi-4 model to answer general health-related FAQs for JumpStarX users (without accessing real patient data).
 
 ## Objectives
 

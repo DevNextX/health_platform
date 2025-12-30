@@ -9,9 +9,9 @@ has_children: true
 
 ## Scenario
 
-This training not only focuses on Copilot features for creating issues and deploying infrastructure and code, but also emphasizes secure devops procedures. Zava as an organization wants to ensure that developers are productive but also guided through secure practices. 
+This training not only focuses on Copilot features for creating issues and deploying infrastructure and code, but also emphasizes secure DevOps procedures. JumpStarX as a digital healthcare company wants to ensure that developers are productive but also guided through secure practices, given the sensitivity of health data.
 
-In previous exercises you have created infrastructure and delivered code using GitHub CI/CD workflows. 
+In previous exercises you have created infrastructure and delivered the Health Platform code using GitHub CI/CD workflows.
 
 In this exercise, you will configure GitHub Advanced Security features and enable code quality gates, security code reviews and leverage features such as automatic Pull Requests to support developer productivity and awareness of security best practices.
 

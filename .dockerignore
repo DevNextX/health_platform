@@ -2,18 +2,36 @@
 .git
 .gitignore
 node_modules
-frontend/node_modules
 __pycache__
 *.pyc
 *.pyo
 *.pyd
 *.log
 .env
+.env.*
 instance/*.db
 instance/*.sqlite
 instance/*.sqlite3
-frontend/build
 .tests_cache
 .pytest_cache
 coverage
 **/.DS_Store
+
+# Exclude frontend source (will be built in Dockerfile stage 1)
+# but do NOT exclude frontend/package*.json (needed for npm ci)
+frontend/src
+frontend/public
+frontend/.pytest_cache
+
+# Azure and infra files not needed in runtime image
+.azure
+infra
+docs
+tests
+deploy
+*.md
+azure.yaml
+docker-compose*.yml
+Dockerfile.backend
+Dockerfile.frontend
+Dockerfile.frontend.nonroot

@@ -9,7 +9,7 @@ has_children: true
 
 ## Scenario
 
-Zava's AI service uses Microsoft Foundry workspace deployments for chat completions. Zava wants to operate responsibly at enterprise scale, and requires that the platform enforce security best practices, content safety and auditability. 
+JumpStarX's AI services use Microsoft Foundry workspace deployments for chat completions that support Health Platform features such as health guidance and FAQs. JumpStarX wants to operate responsibly at enterprise scale, and requires that the platform enforce security best practices, content safety and auditability.
 
 To ensure this, the platform must enforce:
 

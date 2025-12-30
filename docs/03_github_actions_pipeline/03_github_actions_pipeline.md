@@ -9,11 +9,11 @@ has_children: true
 
 ## Scenario
 
-This training will have you using Copilot features for development and also to automate devops delivery for the Zava solution.
+This training will have you using Copilot features for development and also to automate DevOps delivery for the Health Platform solution used by JumpStarX.
 
-In the previous exercise, you used Copilot to create a GitHub issue and to generate the infrastructure Bicep scripts from the issue. You also deployed the infrastructure so that it is ready for deploying the solution. 
+In the previous exercise, you used Copilot to create a GitHub issue and to generate the infrastructure Bicep scripts from the issue. You also deployed the infrastructure so that it is ready for deploying the Health Platform solution.
 
-In this exercise, you will create a GitHub Actions CI/CD pipeline (workflow) to build and containerize the Zava web application and then deploy it to your previously created Azure infrastructure.
+In this exercise, you will create a GitHub Actions CI/CD pipeline (workflow) to build and containerize the Health Platform web application and then deploy it to your previously created Azure infrastructure.
 
 ## Objectives
 

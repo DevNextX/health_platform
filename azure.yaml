@@ -1,0 +1,15 @@
+name: health-platform
+metadata:
+  template: health-platform@0.0.1
+infra:
+  provider: bicep
+  path: infra
+  module: main
+services:
+  api:
+    project: ./
+    language: python
+    host: appservice
+    docker:
+      path: ./Dockerfile
+      context: ./
