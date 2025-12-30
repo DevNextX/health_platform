@@ -11,14 +11,27 @@ import {
   TooltipComponent,
   LegendComponent,
   DataZoomComponent,
+  TitleComponent,
 } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import { Empty, Select, Space, Button } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
+import { parseServerTime } from '../utils/date';
+import { computeThresholdStatus, getStatusColor } from '../utils/thresholdCalculator';
 
 const { Option } = Select;
+
+const SYSTOLIC_COLOR = '#1890ff';
+const DIASTOLIC_COLOR = '#52c41a';
+const HEART_RATE_COLOR = '#722ed1';
+// Symbol sizing constants keep highlight markers consistent
+const DEFAULT_SYMBOL_SIZE = 6;
+const BORDERLINE_SYMBOL_SIZE = 7;
+const HIGHLIGHT_SYMBOL_SIZE = 9;
+// Colors now handled by getStatusColor, but we keep base colors for lines
+
 
 // Register ECharts components
 echarts.use([
@@ -27,10 +40,11 @@ echarts.use([
   TooltipComponent,
   LegendComponent,
   DataZoomComponent,
+  TitleComponent,
   CanvasRenderer,
 ]);
 
-const HealthChart = ({ records = [] }) => {
+const HealthChart = ({ records = [], thresholdConfig }) => {
   const { t } = useTranslation();
   const [timeRange, setTimeRange] = useState('week'); // week, month, all
   const [filteredRecords, setFilteredRecords] = useState([]);
@@ -47,12 +61,12 @@ const HealthChart = ({ records = [] }) => {
     switch (timeRange) {
       case 'week':
         filtered = records.filter(record => 
-          dayjs(record.timestamp).isAfter(now.subtract(7, 'day'))
+          parseServerTime(record.timestamp).isAfter(now.subtract(7, 'day'))
         );
         break;
       case 'month':
         filtered = records.filter(record => 
-          dayjs(record.timestamp).isAfter(now.subtract(30, 'day'))
+          parseServerTime(record.timestamp).isAfter(now.subtract(30, 'day'))
         );
         break;
       default:
@@ -61,7 +75,7 @@ const HealthChart = ({ records = [] }) => {
     }
 
     // Sort by timestamp
-    filtered.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    filtered.sort((a, b) => parseServerTime(a.timestamp).valueOf() - parseServerTime(b.timestamp).valueOf());
     setFilteredRecords(filtered);
   }, [records, timeRange]);
 
@@ -96,7 +110,7 @@ const HealthChart = ({ records = [] }) => {
 
   // Prepare data for ECharts
   const timeAxis = filteredRecords.map(record => 
-    dayjs(record.timestamp).format('MM-DD HH:mm')
+    parseServerTime(record.timestamp).format('MM-DD HH:mm')
   );
   
   // Backend fields are `systolic` and `diastolic`; coerce to numbers, use nulls for missing values
@@ -107,6 +121,75 @@ const HealthChart = ({ records = [] }) => {
   const systolicData = filteredRecords.map(record => toNumOrNull(record.systolic));
   const diastolicData = filteredRecords.map(record => toNumOrNull(record.diastolic));
   const heartRateData = filteredRecords.map(record => toNumOrNull(record.heart_rate));
+
+  // Helper to determine point style based on threshold
+  const getPointStyle = (value, type) => {
+    if (value === null) return {};
+    if (!thresholdConfig || !thresholdConfig.payload) return {};
+    
+    const payload = thresholdConfig.payload;
+    let status = 'healthy';
+    
+    // 1. Try new structure
+    if (payload[type] && typeof payload[type] === 'object' && !Array.isArray(payload[type])) {
+      const { min, max, borderline_max } = payload[type];
+      if (value < min || (borderline_max && value > borderline_max)) status = 'out_of_range';
+      else if (value > max) status = 'borderline';
+    } 
+    // 2. Fallback to old structure
+    else {
+      const healthy = payload[`${type}_healthy`];
+      const borderline = payload[`${type}_borderline`];
+      if (healthy && Array.isArray(healthy)) {
+        if (value < healthy[0] || value > healthy[1]) {
+           if (borderline && Array.isArray(borderline) && value >= borderline[0] && value <= borderline[1]) {
+             status = 'borderline';
+           } else {
+             status = 'out_of_range';
+           }
+        }
+      } else {
+        // Hardcoded fallback if no config (legacy behavior)
+        const normal = type === 'systolic' ? 120 : 80;
+        if (value >= normal) status = 'out_of_range'; // Old logic was just >= normal is bad
+      }
+    }
+
+    if (status === 'out_of_range') return { itemStyle: { color: getStatusColor('out_of_range') }, symbolSize: HIGHLIGHT_SYMBOL_SIZE };
+    if (status === 'borderline') return { itemStyle: { color: getStatusColor('borderline') }, symbolSize: BORDERLINE_SYMBOL_SIZE };
+    return {};
+  };
+
+  const systolicSeriesData = systolicData.map((value) => {
+    if (value === null) return value;
+    const style = getPointStyle(value, 'systolic');
+    return style.itemStyle ? { value, ...style } : value;
+  });
+
+  const diastolicSeriesData = diastolicData.map((value) => {
+    if (value === null) return value;
+    const style = getPointStyle(value, 'diastolic');
+    return style.itemStyle ? { value, ...style } : value;
+  });
+
+  const numericValues = [...systolicData, ...diastolicData, ...heartRateData]
+    .filter((v) => typeof v === 'number');
+  let yMin = 0;
+  let yMax = 200;
+  if (numericValues.length) {
+    const minVal = Math.min(...numericValues);
+    const maxVal = Math.max(...numericValues);
+    const span = maxVal - minVal;
+    const paddingBase = span === 0 ? Math.max(5, Math.round((maxVal || 0) * 0.1)) : Math.round(span * 0.1);
+    const padding = Math.max(5, paddingBase);
+    const candidateMin = Math.max(0, minVal - padding);
+    const candidateMax = maxVal + padding;
+    yMin = Math.floor(candidateMin / 5) * 5;
+    yMax = Math.ceil(candidateMax / 5) * 5;
+    if (yMin === yMax) {
+      yMax = yMin + 10;
+    }
+  }
 
   const option = {
     title: {
@@ -148,46 +231,34 @@ const HealthChart = ({ records = [] }) => {
         rotate: 45,
       },
     },
-    yAxis: [
-      {
-        type: 'value',
-  name: t('chart.yaxis.bp'),
-        position: 'left',
-        axisLabel: {
-          formatter: '{value} mmHg',
-        },
-        min: 50,
-        max: 200,
+    yAxis: {
+      type: 'value',
+      name: t('chart.yaxis.unified'),
+      position: 'left',
+      axisLabel: {
+        formatter: (val) => val,
       },
-      {
-        type: 'value',
-  name: t('chart.yaxis.hr'),
-        position: 'right',
-        axisLabel: {
-          formatter: '{value} bpm',
-        },
-        min: 50,
-        max: 150,
-      },
-    ],
+      min: yMin,
+      max: yMax,
+      nameGap: 45,
+    },
     series: [
       {
   name: t('chart.series.systolic'),
         type: 'line',
-        yAxisIndex: 0,
-        data: systolicData,
+        data: systolicSeriesData,
         itemStyle: {
-          color: '#ff4d4f',
+          color: SYSTOLIC_COLOR,
         },
         lineStyle: {
-          color: '#ff4d4f',
+          color: SYSTOLIC_COLOR,
         },
         connectNulls: false,
         symbol: 'circle',
-        symbolSize: 6,
+        symbolSize: DEFAULT_SYMBOL_SIZE,
         emphasis: {
           itemStyle: {
-            borderColor: '#ff4d4f',
+            borderColor: SYSTOLIC_COLOR,
             borderWidth: 2,
           },
         },
@@ -195,20 +266,19 @@ const HealthChart = ({ records = [] }) => {
       {
   name: t('chart.series.diastolic'),
         type: 'line',
-        yAxisIndex: 0,
-        data: diastolicData,
+        data: diastolicSeriesData,
         itemStyle: {
-          color: '#52c41a',
+          color: DIASTOLIC_COLOR,
         },
         lineStyle: {
-          color: '#52c41a',
+          color: DIASTOLIC_COLOR,
         },
         connectNulls: false,
         symbol: 'circle',
-        symbolSize: 6,
+        symbolSize: DEFAULT_SYMBOL_SIZE,
         emphasis: {
           itemStyle: {
-            borderColor: '#52c41a',
+            borderColor: DIASTOLIC_COLOR,
             borderWidth: 2,
           },
         },
@@ -216,20 +286,19 @@ const HealthChart = ({ records = [] }) => {
       {
   name: t('chart.series.hr'),
         type: 'line',
-        yAxisIndex: 1,
         data: heartRateData,
         itemStyle: {
-          color: '#1890ff',
+          color: HEART_RATE_COLOR,
         },
         lineStyle: {
-          color: '#1890ff',
+          color: HEART_RATE_COLOR,
         },
         connectNulls: false,
         symbol: 'triangle',
-        symbolSize: 6,
+        symbolSize: DEFAULT_SYMBOL_SIZE,
         emphasis: {
           itemStyle: {
-            borderColor: '#1890ff',
+            borderColor: HEART_RATE_COLOR,
             borderWidth: 2,
           },
         },

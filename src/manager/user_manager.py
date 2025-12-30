@@ -5,6 +5,9 @@ from typing import Optional
 from sqlalchemy.exc import IntegrityError
 from ..extensions import db
 from ..models import User
+from sqlalchemy import func
+from datetime import datetime
+from ..timeutil import UTC
 from ..security import hash_password
 
 
@@ -12,7 +15,8 @@ class UserManager:
     def create_user(self, username: str, email: str, password: str,
                     age: Optional[int] = None, gender: Optional[str] = None, weight: Optional[float] = None) -> User:
         user = User()
-        user.username = username
+        # Normalize username to lowercase for case-insensitive handling
+        user.username = (username or "").lower()
         user.email = email
         user.password_hash = hash_password(password)
         user.age = age
@@ -33,6 +37,11 @@ class UserManager:
     def get_user_by_email(self, email: str) -> Optional[User]:
         return User.query.filter_by(email=email).first()
 
+    def get_user_by_username_ci(self, username: str) -> Optional[User]:
+        if not username:
+            return None
+        return User.query.filter(func.lower(User.username) == (username or "").lower()).first()
+
     def update_user(self, user: User, **fields) -> User:
         for k, v in fields.items():
             if v is not None and hasattr(user, k):
@@ -42,4 +51,19 @@ class UserManager:
 
     def bump_token_version(self, user: User):
         user.token_version += 1
+        db.session.commit()
+
+    def set_password(self, user: User, new_password: str, force_change_next_login: bool = False):
+        user.password_hash = hash_password(new_password)
+        user.must_change_password = bool(force_change_next_login)
+        # Invalidate existing refresh tokens
+        user.token_version += 1
+        db.session.commit()
+
+    def set_role(self, user: User, role: str):
+        user.role = role
+        db.session.commit()
+
+    def set_last_login(self, user: User):
+        user.last_login_at = datetime.now(UTC)
         db.session.commit()

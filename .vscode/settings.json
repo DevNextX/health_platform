@@ -5,5 +5,7 @@
             "path": "C:\\Windows\\System32\\cmd.exe",
             "args": []
         }
-    }
+    },
+    "chatgpt.commentCodeLensEnabled": false,
+    "chatgpt.openOnStartup": true
 }

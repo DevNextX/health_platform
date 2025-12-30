@@ -12,9 +12,31 @@ import en from './locales/en/translation.json';
 
 // Determine initial language from localStorage or browser
 const LS_KEY = 'app_language';
-// Default to Simplified Chinese unless user has explicitly saved a preference
-const savedLang = localStorage.getItem(LS_KEY);
-const defaultLang = savedLang || 'zh';
+// Default to English; if logged in, prefer per-user saved language
+function getInitialLang() {
+  try {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      const b64 = token.split('.')[1];
+      if (b64) {
+        let base64 = b64.replace(/-/g, '+').replace(/_/g, '/');
+        const pad = base64.length % 4;
+        if (pad) base64 += '='.repeat(4 - pad);
+        const payload = JSON.parse(atob(base64));
+        const sub = payload.sub || payload.identity;
+        if (sub) {
+          const perUser = localStorage.getItem(`lang_user_${sub}`);
+          if (perUser) return perUser;
+        }
+      }
+    }
+  } catch (_) {
+    // ignore
+  }
+  const savedLang = localStorage.getItem(LS_KEY);
+  return savedLang || 'en';
+}
+const defaultLang = getInitialLang();
 
 i18n
   .use(initReactI18next)
@@ -24,7 +46,7 @@ i18n
       en: { translation: en },
     },
     lng: defaultLang,
-    fallbackLng: 'zh',
+    fallbackLng: 'en',
     interpolation: { escapeValue: false },
     returnEmptyString: false,
   });
