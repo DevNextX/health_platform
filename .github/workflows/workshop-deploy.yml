@@ -107,86 +107,86 @@ jobs:
           set -e
           NAMESPACE=${{ steps.namespace.outputs.NAMESPACE }}
           cat > /tmp/deploy-${NAMESPACE}.yaml <<'EOF'
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: backend
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: backend
-  template:
-    metadata:
-      labels:
-        app: backend
-    spec:
-      containers:
-      - name: backend
-        image: ${IMAGE_BACKEND}
-        ports:
-        - containerPort: 5000
-        resources:
-          requests:
-            cpu: "250m"
-            memory: "200Mi"
-          limits:
-            cpu: "250m"
-            memory: "200Mi"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: backend
-spec:
-  selector:
-    app: backend
-  ports:
-  - protocol: TCP
-    port: 5000
-    targetPort: 5000
-  type: ClusterIP
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: frontend
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: frontend
-  template:
-    metadata:
-      labels:
-        app: frontend
-    spec:
-      containers:
-      - name: frontend
-        image: ${IMAGE_FRONTEND}
-        ports:
-        - containerPort: 8080
-        resources:
-          requests:
-            cpu: "250m"
-            memory: "200Mi"
-          limits:
-            cpu: "250m"
-            memory: "200Mi"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: frontend
-spec:
-  selector:
-    app: frontend
-  ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 8080
-  type: ClusterIP
-EOF
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: backend
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: backend
+            template:
+              metadata:
+                labels:
+                  app: backend
+              spec:
+                containers:
+                - name: backend
+                  image: ${IMAGE_BACKEND}
+                  ports:
+                  - containerPort: 5000
+                  resources:
+                    requests:
+                      cpu: "250m"
+                      memory: "200Mi"
+                    limits:
+                      cpu: "250m"
+                      memory: "200Mi"
+          ---
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: backend
+          spec:
+            selector:
+              app: backend
+            ports:
+            - protocol: TCP
+              port: 5000
+              targetPort: 5000
+            type: ClusterIP
+          ---
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: frontend
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: frontend
+            template:
+              metadata:
+                labels:
+                  app: frontend
+              spec:
+                containers:
+                - name: frontend
+                  image: ${IMAGE_FRONTEND}
+                  ports:
+                  - containerPort: 8080
+                  resources:
+                    requests:
+                      cpu: "250m"
+                      memory: "200Mi"
+                    limits:
+                      cpu: "250m"
+                      memory: "200Mi"
+          ---
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: frontend
+          spec:
+            selector:
+              app: frontend
+            ports:
+            - protocol: TCP
+              port: 80
+              targetPort: 8080
+            type: ClusterIP
+          EOF
 
           kubectl apply -n ${NAMESPACE} -f /tmp/deploy-${NAMESPACE}.yaml
 
