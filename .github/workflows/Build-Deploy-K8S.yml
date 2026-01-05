@@ -252,8 +252,8 @@ jobs:
           echo "Event: ${{ github.event_name }}"
           
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo "environment=staging" >> $GITHUB_OUTPUT
-            echo "📋 Pull request detected - using staging environment for QA"
+            echo "environment=development" >> $GITHUB_OUTPUT
+            echo "📋 Pull request detected - using development environment for pull request"
           elif [ "${{ github.event.inputs.environment }}" != "" ]; then
             echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
             echo "📋 Using manual environment selection: ${{ github.event.inputs.environment }}"
