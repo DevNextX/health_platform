@@ -26,6 +26,7 @@ import Members from './pages/Members';
 import Settings from './pages/Settings';
 import AdminUsers from './pages/AdminUsers';
 import SuperAdminSettings from './pages/SuperAdminSettings';
+import MedicalHistory from './pages/MedicalHistory';
 import { MemberProvider } from './context/MemberContext';
 import { isAuthenticated, getMustChangeFromToken } from './utils/auth';
 import ChangePassword from './pages/ChangePassword';
@@ -113,6 +114,7 @@ function App() {
               <Route index element={<Navigate to="/dashboard" />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="health-records" element={<HealthRecords />} />
+              <Route path="medical-history" element={<MedicalHistory />} />
               <Route path="members" element={<Members />} />
               <Route path="profile" element={<Profile />} />
               <Route path="settings" element={<Settings />} />

@@ -30,6 +30,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Compute branch and image tags
         id: set_vars
@@ -41,8 +53,18 @@ jobs:
           fi
           # sanitize
           SANITIZED=$(echo "$BRANCH_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9.-]/-/g' | sed 's/^-*//; s/-*$//')
-          IMAGE_FRONTEND="ghcr.io/${{ github.repository_owner }}/health-platform-frontend:${SANITIZED}"
-          IMAGE_BACKEND="ghcr.io/${{ github.repository_owner }}/health-platform-backend:${SANITIZED}"
+          # ensure registry repository owner is lowercase (docker tags must be lowercase)
+          OWNER_RAW="${{ github.repository_owner }}"
+          OWNER_LOWER=$(echo "$OWNER_RAW" | tr '[:upper:]' '[:lower:]')
+          # add short SHA suffix to tag for immutability
+          SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-8)
+          # Fallback for local/manual runs where GITHUB_SHA might be unset (outside GitHub Actions).
+          if [ -z "$SHORT_SHA" ]; then
+            SHORT_SHA="${SANITIZED}"
+          fi
+          TAG_SUFFIX="${SANITIZED}-${SHORT_SHA}"
+          IMAGE_FRONTEND="ghcr.io/${OWNER_LOWER}/health-platform-frontend:${TAG_SUFFIX}"
+          IMAGE_BACKEND="ghcr.io/${OWNER_LOWER}/health-platform-backend:${TAG_SUFFIX}"
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_OUTPUT
           echo "IMAGE_FRONTEND=$IMAGE_FRONTEND" >> $GITHUB_OUTPUT
           echo "IMAGE_BACKEND=$IMAGE_BACKEND" >> $GITHUB_OUTPUT
@@ -71,6 +93,21 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          ref: ${{ github.event.inputs.branch || github.ref }}
+
+      - name: Set Kubernetes context
+        uses: azure/k8s-set-context@v1
+        with:
+          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+
+      - name: Select kubectl context
+        env:
+          KUBE_CONTEXT: ${{ secrets.KUBE_CONTEXT }}
+        run: |
+          set -e
+          if [ -n "$KUBE_CONTEXT" ]; then
+            kubectl config use-context "$KUBE_CONTEXT"
+          fi
 
       - name: Determine namespace
         id: namespace
@@ -85,8 +122,8 @@ jobs:
 
       - name: Create namespace and imagePullSecret
         env:
-          GHCR_USERNAME: ${{ github.repository_owner }}
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_PASSWORD: ${{ secrets.GHCR_PAT || secrets.GITHUB_TOKEN }}
         run: |
           set -e
           NAMESPACE=${{ steps.namespace.outputs.NAMESPACE }}
@@ -96,8 +133,53 @@ jobs:
             --namespace="$NAMESPACE" \
             --docker-server=ghcr.io \
             --docker-username="$GHCR_USERNAME" \
-            --docker-password="$GHCR_TOKEN" \
+            --docker-password="$GHCR_PASSWORD" \
             --docker-email="${GHCR_USERNAME}@users.noreply.github.com"
+
+      - name: Apply LimitRange and ResourceQuota to namespace
+        run: |
+          set -e
+          NAMESPACE=${{ steps.namespace.outputs.NAMESPACE }}
+          ENV_FILE=deploy/config/development.env
+          if [ -f "$ENV_FILE" ]; then
+            sed -i 's/\r$//' "$ENV_FILE"
+            set -a; source "$ENV_FILE"; set +a
+          fi
+
+          cat > /tmp/limitrange-${NAMESPACE}.yaml <<EOF
+          apiVersion: v1
+          kind: LimitRange
+          metadata:
+            name: workshop-limitrange
+            namespace: ${NAMESPACE}
+          spec:
+            limits:
+            - default:
+                cpu: "${BACKEND_CPU_LIMIT:-250m}"
+                memory: "${BACKEND_MEMORY_LIMIT:-200Mi}"
+              defaultRequest:
+                cpu: "${BACKEND_CPU_REQUEST:-250m}"
+                memory: "${BACKEND_MEMORY_REQUEST:-200Mi}"
+              type: Container
+EOF
+          sed 's/^          //' /tmp/limitrange-${NAMESPACE}.yaml > /tmp/limitrange-${NAMESPACE}.clean.yaml
+          kubectl apply -f /tmp/limitrange-${NAMESPACE}.clean.yaml
+
+          cat > /tmp/quota-${NAMESPACE}.yaml <<EOF
+          apiVersion: v1
+          kind: ResourceQuota
+          metadata:
+            name: workshop-quota
+            namespace: ${NAMESPACE}
+          spec:
+            hard:
+              requests.cpu: "4"
+              requests.memory: "8Gi"
+              limits.cpu: "8"
+              limits.memory: "16Gi"
+EOF
+          sed 's/^          //' /tmp/quota-${NAMESPACE}.yaml > /tmp/quota-${NAMESPACE}.clean.yaml
+          kubectl apply -f /tmp/quota-${NAMESPACE}.clean.yaml
 
       - name: Deploy backend and frontend with resource requests/limits
         env:
@@ -106,7 +188,15 @@ jobs:
         run: |
           set -e
           NAMESPACE=${{ steps.namespace.outputs.NAMESPACE }}
-          cat > /tmp/deploy-${NAMESPACE}.yaml <<'EOF'
+          # Load environment config (development defaults); export variables for expansion
+          ENV_FILE=deploy/config/development.env
+          if [ -f "$ENV_FILE" ]; then
+            sed -i 's/\r$//' "$ENV_FILE"
+            set -a; source "$ENV_FILE"; set +a
+          else
+            echo "Warning: $ENV_FILE not found, falling back to inline values"
+          fi
+          cat > /tmp/deploy-${NAMESPACE}.yaml <<EOF
           apiVersion: apps/v1
           kind: Deployment
           metadata:
@@ -128,11 +218,11 @@ jobs:
                   - containerPort: 5000
                   resources:
                     requests:
-                      cpu: "250m"
-                      memory: "200Mi"
+                      cpu: "${BACKEND_CPU_REQUEST}"
+                      memory: "${BACKEND_MEMORY_REQUEST}"
                     limits:
-                      cpu: "250m"
-                      memory: "200Mi"
+                      cpu: "${BACKEND_CPU_LIMIT}"
+                      memory: "${BACKEND_MEMORY_LIMIT}"
           ---
           apiVersion: v1
           kind: Service
@@ -168,11 +258,11 @@ jobs:
                   - containerPort: 8080
                   resources:
                     requests:
-                      cpu: "250m"
-                      memory: "200Mi"
+                      cpu: "${FRONTEND_CPU_REQUEST}"
+                      memory: "${FRONTEND_MEMORY_REQUEST}"
                     limits:
-                      cpu: "250m"
-                      memory: "200Mi"
+                      cpu: "${FRONTEND_CPU_LIMIT}"
+                      memory: "${FRONTEND_MEMORY_LIMIT}"
           ---
           apiVersion: v1
           kind: Service
@@ -188,5 +278,6 @@ jobs:
             type: ClusterIP
           EOF
 
-          kubectl apply -n ${NAMESPACE} -f /tmp/deploy-${NAMESPACE}.yaml
+          sed 's/^          //' /tmp/deploy-${NAMESPACE}.yaml > /tmp/deploy-${NAMESPACE}.clean.yaml
+          kubectl apply -n ${NAMESPACE} -f /tmp/deploy-${NAMESPACE}.clean.yaml
 

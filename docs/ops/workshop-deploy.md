@@ -13,8 +13,8 @@ Namespace naming
 Image tags
 ----------
 - Images are pushed to GHCR with tags derived from the sanitized branch name:
-  - frontend: `ghcr.io/<org>/health-platform-frontend:<branch>`
-  - backend: `ghcr.io/<org>/health-platform-backend:<branch>`
+  - frontend: `ghcr.io/<org>/health-platform-frontend:<branch>-<short-sha>`
+  - backend: `ghcr.io/<org>/health-platform-backend:<branch>-<short-sha>`
 
 Resource requests and limits
 ---------------------------
@@ -60,6 +60,14 @@ kubectl delete namespace ws-<sanitized-branch>
 Security notes
 --------------
 - The workflow creates a `ghcr-secret` in each namespace using the `GITHUB_TOKEN`. For long-lived workshop namespaces consider using a pull secret with limited scope or a service account with least privilege.
+
+Namespace safeguards
+--------------------
+- The workflow automatically applies a `LimitRange` and a `ResourceQuota` to each `ws-` namespace using defaults (and values read from `deploy/config/development.env` if available). This prevents a single workshop namespace from exhausting cluster resources. Current quota defaults applied by the workflow are:
+  - requests.cpu: 4
+  - requests.memory: 8Gi
+  - limits.cpu: 8
+  - limits.memory: 16Gi
 
 Further improvements
 --------------------

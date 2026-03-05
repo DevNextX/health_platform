@@ -75,6 +75,7 @@ const Members = () => {
     try {
       await memberAPI.remove(record.id);
       message.success(t('members.messages.deleteSuccess'));
+      window.dispatchEvent(new Event('members:changed'));
       load();
     } catch (e) {
       console.error('Delete member failed', e);
@@ -90,7 +91,9 @@ const Members = () => {
       } else {
         await memberAPI.create(values);
         message.success(t('members.messages.created'));
+        message.info(t('members.messages.selectNewMemberHint'));
       }
+      window.dispatchEvent(new Event('members:changed'));
       setModalVisible(false);
       load();
     } catch (e) {

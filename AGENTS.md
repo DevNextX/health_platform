@@ -26,6 +26,11 @@
 - Keep generated documents inside dedicated folders: `/docs/requirements`, `/docs/design`, `/docs/plan`, `/docs/batch_import`, `/docs/admin`, `/docs/api`, `/docs/architecture`, `/docs/ops`, `/docs/guides`, `/docs/testing`, `/docs/security`, `/docs/releases`, `/docs/reports`, `/docs/workflow`.
 - Avoid adding new Markdown files at the root of `/docs`; place them in an appropriate subfolder or create one if necessary.
 
+## Documentation Language
+- Default language for repository documentation is Chinese.
+- Apply this rule to new or updated Markdown docs, including files under `/docs` and root-level project documentation.
+- If an English version is needed, keep Chinese as the primary maintained version and provide bilingual content where appropriate.
+
 ## Commit & Pull Request Guidelines
 - Follow Conventional Commits (e.g., `feat: add appointment scheduler`, `fix: handle empty JWT payload`).
 - PRs should summarize changes, reference related issues, and attach test evidence (logs or screenshots). Include reproduction steps or manual checklists when relevant.
