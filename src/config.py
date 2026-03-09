@@ -37,5 +37,12 @@ class Config:
     ).split(",")
     RATELIMIT_DEFAULT = os.getenv("RATELIMIT_DEFAULT", "60 per minute")
     RATELIMIT_AUTH = os.getenv("RATELIMIT_AUTH", "5 per minute")
+    ATTACHMENT_STORAGE_PROVIDER = os.getenv("ATTACHMENT_STORAGE_PROVIDER", "local")
+    ATTACHMENT_LOCAL_BASE_PATH = os.getenv("ATTACHMENT_LOCAL_BASE_PATH", "instance/uploads")
+    ATTACHMENT_MAX_FILE_SIZE_MB = int(os.getenv("ATTACHMENT_MAX_FILE_SIZE_MB", "20"))
+    ATTACHMENT_ALLOWED_EXT = os.getenv(
+        "ATTACHMENT_ALLOWED_EXT",
+        ".jpg,.jpeg,.png,.pdf,.doc,.docx"
+    )
     # Application version - read from VERSION file (unified for frontend + backend)
     VERSION = _read_version()

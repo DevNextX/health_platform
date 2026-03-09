@@ -17,8 +17,11 @@ import {
   Popconfirm,
   Tag,
   Typography,
+  Drawer,
+  Upload,
+  Alert,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined, UploadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { medicalHistoryAPI } from '../services/api';
 import { useMember } from '../context/MemberContext';
@@ -26,6 +29,7 @@ import { useTranslation } from 'react-i18next';
 
 const { Title } = Typography;
 const { TextArea } = Input;
+const MAX_ATTACHMENTS_PER_HISTORY = 10;
 
 const MedicalHistory = () => {
   const { t } = useTranslation();
@@ -37,6 +41,12 @@ const MedicalHistory = () => {
   const [editingRecord, setEditingRecord] = useState(null);
   const [form] = Form.useForm();
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
+  const [attachmentDrawerOpen, setAttachmentDrawerOpen] = useState(false);
+  const [attachmentHistory, setAttachmentHistory] = useState(null);
+  const [attachments, setAttachments] = useState([]);
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [attachmentPagination, setAttachmentPagination] = useState({ current: 1, pageSize: 10, total: 0 });
 
   // ---------------------------------------------------------------------------
   // Fetch
@@ -157,6 +167,110 @@ const MedicalHistory = () => {
     }
   };
 
+  const fetchAttachments = useCallback(async (historyId, page = 1, pageSize = 10) => {
+    if (!historyId) return;
+    setAttachmentsLoading(true);
+    try {
+      const resp = await medicalHistoryAPI.listAttachments(historyId, { page, size: pageSize });
+      setAttachments(resp.data.attachments || []);
+      const pg = resp.data.pagination || { page, size: pageSize, total: 0 };
+      setAttachmentPagination({ current: pg.page, pageSize: pg.size, total: pg.total });
+    } catch {
+      message.error(t('medicalHistory.attachments.loadFail'));
+    } finally {
+      setAttachmentsLoading(false);
+    }
+  }, [t]);
+
+  const openAttachmentDrawer = (record) => {
+    setAttachmentHistory(record);
+    setAttachmentDrawerOpen(true);
+    fetchAttachments(record.id, 1, attachmentPagination.pageSize);
+  };
+
+  const closeAttachmentDrawer = () => {
+    setAttachmentDrawerOpen(false);
+    setAttachmentHistory(null);
+    setAttachments([]);
+  };
+
+  const handleAttachmentUpload = async ({ file, onSuccess, onError }) => {
+    if (!attachmentHistory) {
+      onError?.(new Error('No history selected'));
+      return;
+    }
+    if (attachmentPagination.total >= MAX_ATTACHMENTS_PER_HISTORY) {
+      const limitError = new Error('attachment limit reached');
+      message.error(t('medicalHistory.attachments.limitReached', { max: MAX_ATTACHMENTS_PER_HISTORY }));
+      onError?.(limitError);
+      return;
+    }
+    const ext = `.${(file.name || '').split('.').pop()?.toLowerCase() || ''}`;
+    const allowed = ['.jpg', '.jpeg', '.png', '.pdf', '.doc', '.docx'];
+    const maxSize = 20 * 1024 * 1024;
+    if (!allowed.includes(ext)) {
+      message.error(t('medicalHistory.attachments.typeNotAllowed'));
+      onError?.(new Error('type not allowed'));
+      return;
+    }
+    if (file.size > maxSize) {
+      message.error(t('medicalHistory.attachments.sizeExceeded'));
+      onError?.(new Error('size exceeded'));
+      return;
+    }
+
+    try {
+      setUploadingAttachment(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      await medicalHistoryAPI.uploadAttachment(attachmentHistory.id, formData);
+      message.success(t('medicalHistory.attachments.uploadSuccess'));
+      await fetchAttachments(
+        attachmentHistory.id,
+        attachmentPagination.current,
+        attachmentPagination.pageSize
+      );
+      onSuccess?.();
+    } catch (err) {
+      message.error(err?.response?.data?.message || t('medicalHistory.attachments.uploadFail'));
+      onError?.(err);
+    } finally {
+      setUploadingAttachment(false);
+    }
+  };
+
+  const handleAttachmentDownload = async (item) => {
+    if (!attachmentHistory) return;
+    try {
+      const resp = await medicalHistoryAPI.downloadAttachment(attachmentHistory.id, item.id);
+      const blob = new Blob([resp.data], { type: item.mime_type || 'application/octet-stream' });
+      const href = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = href;
+      a.download = item.file_name || `attachment_${item.id}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(href);
+    } catch {
+      message.error(t('medicalHistory.attachments.downloadFail'));
+    }
+  };
+
+  const handleAttachmentDelete = async (item) => {
+    if (!attachmentHistory) return;
+    try {
+      await medicalHistoryAPI.removeAttachment(attachmentHistory.id, item.id);
+      message.success(t('medicalHistory.attachments.deleteSuccess'));
+      const newTotal = attachmentPagination.total - 1;
+      const maxPage = Math.max(1, Math.ceil(newTotal / attachmentPagination.pageSize));
+      const targetPage = Math.min(attachmentPagination.current, maxPage);
+      await fetchAttachments(attachmentHistory.id, targetPage, attachmentPagination.pageSize);
+    } catch {
+      message.error(t('medicalHistory.attachments.deleteFail'));
+    }
+  };
+
   // ---------------------------------------------------------------------------
   // Table columns
   // ---------------------------------------------------------------------------
@@ -209,7 +323,7 @@ const MedicalHistory = () => {
     {
       title: t('health.columns.actions'),
       key: 'actions',
-      width: 120,
+      width: 220,
       render: (_, record) => (
         <Space>
           <Button
@@ -218,6 +332,14 @@ const MedicalHistory = () => {
             icon={<EditOutlined />}
             onClick={() => openEdit(record)}
           />
+          <Button
+            type="link"
+            size="small"
+            icon={<PaperClipOutlined />}
+            onClick={() => openAttachmentDrawer(record)}
+          >
+            {t('medicalHistory.attachments.manage')}
+          </Button>
           <Popconfirm
             title={t('medicalHistory.deleteConfirm')}
             onConfirm={() => handleDelete(record.id)}
@@ -249,6 +371,22 @@ const MedicalHistory = () => {
           </div>
         }
       >
+        {!selectedMemberId && (
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message={t('medicalHistory.attachments.noMemberHint')}
+          />
+        )}
+        {selectedMemberId && !loading && records.length === 0 && (
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message={t('medicalHistory.attachments.noRecordHint')}
+          />
+        )}
         <Table
           rowKey="id"
           dataSource={records}
@@ -265,6 +403,100 @@ const MedicalHistory = () => {
           scroll={{ x: 700 }}
         />
       </Card>
+
+      <Drawer
+        title={`${t('medicalHistory.attachments.title')} - ${attachmentHistory?.disease_name || ''}`}
+        open={attachmentDrawerOpen}
+        onClose={closeAttachmentDrawer}
+        width={760}
+      >
+        <Space direction="vertical" size={8} style={{ width: '100%', marginBottom: 16 }}>
+          <Alert
+            type="info"
+            showIcon
+            message={t('medicalHistory.attachments.entryHint')}
+          />
+          <div style={{ color: '#595959', fontSize: 14 }}>
+            {t('medicalHistory.attachments.count', {
+              count: attachmentPagination.total,
+              max: MAX_ATTACHMENTS_PER_HISTORY,
+            })}
+          </div>
+        </Space>
+        <Space style={{ marginBottom: 16 }}>
+          <Upload
+            customRequest={handleAttachmentUpload}
+            showUploadList={false}
+            disabled={uploadingAttachment || attachmentPagination.total >= MAX_ATTACHMENTS_PER_HISTORY}
+          >
+            <Button icon={<UploadOutlined />} loading={uploadingAttachment}>
+              {t('medicalHistory.attachments.upload')}
+            </Button>
+          </Upload>
+        </Space>
+        <Table
+          rowKey="id"
+          dataSource={attachments}
+          loading={attachmentsLoading}
+          locale={{ emptyText: t('medicalHistory.attachments.empty') }}
+          columns={[
+            {
+              title: t('medicalHistory.attachments.fileName'),
+              dataIndex: 'file_name',
+              key: 'file_name',
+              ellipsis: true,
+            },
+            {
+              title: t('medicalHistory.attachments.fileType'),
+              dataIndex: 'file_ext',
+              key: 'file_ext',
+              width: 120,
+            },
+            {
+              title: t('medicalHistory.attachments.fileSize'),
+              dataIndex: 'file_size',
+              key: 'file_size',
+              width: 140,
+              render: (size) => `${(size / 1024).toFixed(1)} KB`,
+            },
+            {
+              title: t('medicalHistory.attachments.uploadedAt'),
+              dataIndex: 'created_at',
+              key: 'created_at',
+              width: 220,
+            },
+            {
+              title: t('health.columns.actions'),
+              key: 'actions',
+              width: 140,
+              render: (_, item) => (
+                <Space>
+                  <Button
+                    type="link"
+                    size="small"
+                    icon={<DownloadOutlined />}
+                    onClick={() => handleAttachmentDownload(item)}
+                  />
+                  <Popconfirm
+                    title={t('medicalHistory.attachments.deleteConfirm')}
+                    onConfirm={() => handleAttachmentDelete(item)}
+                    okText={t('common.confirm')}
+                    cancelText={t('common.close')}
+                  >
+                    <Button danger type="link" size="small" icon={<DeleteOutlined />} />
+                  </Popconfirm>
+                </Space>
+              ),
+            },
+          ]}
+          pagination={{
+            current: attachmentPagination.current,
+            pageSize: attachmentPagination.pageSize,
+            total: attachmentPagination.total,
+            onChange: (page, pageSize) => fetchAttachments(attachmentHistory?.id, page, pageSize),
+          }}
+        />
+      </Drawer>
 
       {/* Add / Edit Modal */}
       <Modal

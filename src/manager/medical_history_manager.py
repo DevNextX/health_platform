@@ -5,7 +5,7 @@ from datetime import date
 from typing import List, Optional, Tuple
 
 from ..extensions import db
-from ..models import MedicalHistory
+from ..models import MedicalHistory, MedicalHistoryAttachment
 from ..resilience.policy import db_breaker, with_retry
 
 
@@ -33,6 +33,13 @@ class MedicalHistoryManager:
         """Return a single entry only if it belongs to the given member."""
         return MedicalHistory.query.filter_by(
             id=history_id, member_id=member_id
+        ).first()
+
+    @db_breaker
+    def get_by_household(self, history_id: int, household_id: int) -> Optional[MedicalHistory]:
+        """Return a single entry only if it belongs to the given household."""
+        return MedicalHistory.query.filter_by(
+            id=history_id, household_id=household_id
         ).first()
 
     @db_breaker
@@ -87,5 +94,6 @@ class MedicalHistoryManager:
     @db_breaker
     @with_retry()
     def delete(self, entry: MedicalHistory) -> None:
+        MedicalHistoryAttachment.query.filter_by(medical_history_id=entry.id).delete()
         db.session.delete(entry)
         db.session.commit()

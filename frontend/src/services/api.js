@@ -154,6 +154,18 @@ export const medicalHistoryAPI = {
   create: (data) => api.post('/api/v1/medical-history', data),
   update: (id, data) => api.put(`/api/v1/medical-history/${id}`, data),
   remove: (id) => api.delete(`/api/v1/medical-history/${id}`),
+  listAttachments: (historyId, params) =>
+    api.get(`/api/v1/medical-history/${historyId}/attachments`, { params }),
+  uploadAttachment: (historyId, formData) =>
+    api.post(`/api/v1/medical-history/${historyId}/attachments`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  downloadAttachment: (historyId, attachmentId) =>
+    api.get(`/api/v1/medical-history/${historyId}/attachments/${attachmentId}/download`, {
+      responseType: 'blob',
+    }),
+  removeAttachment: (historyId, attachmentId) =>
+    api.delete(`/api/v1/medical-history/${historyId}/attachments/${attachmentId}`),
 };
 
 export default api;
