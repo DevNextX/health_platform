@@ -17,11 +17,13 @@ instance/*.sqlite3
 coverage
 **/.DS_Store
 
-# Exclude frontend source (will be built in Dockerfile stage 1)
-# but do NOT exclude frontend/package*.json (needed for npm ci)
-frontend/src
-frontend/public
+# Note: frontend/src is REQUIRED for npm run build, so do NOT exclude it
+# Only exclude frontend artifacts and cache that shouldn't be in build context
+# frontend/src  # REMOVED - source code is required for building
+# frontend/public  # KEEP public/ - contains index.html and static assets needed for build
 frontend/.pytest_cache
+frontend/build
+frontend/node_modules
 
 # Azure and infra files not needed in runtime image
 .azure

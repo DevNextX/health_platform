@@ -129,6 +129,63 @@
 			"isBackground": false,
 			"problemMatcher": [],
 			"group": "build"
+		},
+		{
+			"label": "run medical history tests",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"-m",
+				"pytest",
+				"tests/test_medical_history.py",
+				"-v",
+				"--tb=short"
+			],
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "debug medical history test",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"-m",
+				"pytest",
+				"tests/test_medical_history.py::TestUpdate::test_update_success",
+				"-v",
+				"--tb=long"
+			],
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "run medical history tests v2",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"-m",
+				"pytest",
+				"tests/test_medical_history.py",
+				"-v",
+				"--tb=short"
+			],
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "run all tests regression",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"-m",
+				"pytest",
+				"tests/",
+				"-v",
+				"--tb=short",
+				"-q"
+			],
+			"problemMatcher": [],
+			"group": "test"
 		}
 	]
 }

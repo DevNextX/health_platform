@@ -222,7 +222,7 @@ jobs:
     # Deploy if: build succeeded OR build was skipped but we still want to deploy, AND branch/manual conditions are met
     if: always() && (needs.build-and-push.result == 'success' || (needs.build-and-push.result == 'skipped' && needs.check-changes.outputs.need_build == 'false')) && ((github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/MVP') || startsWith(github.ref, 'refs/heads/dev') || startsWith(github.ref, 'refs/heads/staging') || github.event.inputs.deploy == 'true')
     # Use GitHub Environment for secrets and protection rules
-    environment: ${{ github.event_name == 'pull_request' && 'staging' || github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production' || (github.ref == 'refs/heads/staging' && 'staging' || 'development')) }}
+    environment: ${{ github.event_name == 'pull_request' && 'development' || github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production' || (github.ref == 'refs/heads/staging' && 'staging' || 'development')) }}
     steps:
       - name: Deployment Decision Summary
         run: |
@@ -252,8 +252,8 @@ jobs:
           echo "Event: ${{ github.event_name }}"
           
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo "environment=staging" >> $GITHUB_OUTPUT
-            echo "📋 Pull request detected - using staging environment for QA"
+            echo "environment=development" >> $GITHUB_OUTPUT
+            echo "📋 Pull request detected - using development environment for pull request"
           elif [ "${{ github.event.inputs.environment }}" != "" ]; then
             echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
             echo "📋 Using manual environment selection: ${{ github.event.inputs.environment }}"
